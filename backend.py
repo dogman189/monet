@@ -2,17 +2,23 @@
 ultraexchange - Python Trading Engine
 Flask REST + SSE backend. Electron spawns this process on startup.
 
-Math Engine v2:
-  - RSI confirmation filter (14-period)
-  - Band re-entry signals (not just touches)
-  - Percentage-based position sizing (20% per buy, 50% partial sells)
-  - Bandwidth filter (skips BB squeeze periods)
-  - 7% trailing stop-loss
-  - Trade cooldown (min 3 intervals between trades)
+Math Engine v4 — Deep Neural Network:
+  - RSI confirmation filter (configurable period)
+  - Band re-entry signals with Bollinger Bands
+  - Multi-layer Neural Network (8 features → 16 → 8 → 4 → 1)
+  - Xavier weight initialization, ReLU hidden layers, tanh output
+  - Online backpropagation with gradient clipping
+  - 8 engineered features: RSI, BB position, bandwidth, momentum,
+    volatility, price/SMA ratio, consecutive direction, mean reversion
+  - Percentage-based or fixed position sizing
+  - Bandwidth squeeze filter
+  - Configurable trailing stop-loss
 """
 
 import json
 import ssl
+import math
+import random
 import urllib.parse
 import urllib.request
 import certifi
@@ -25,51 +31,322 @@ from collections import deque
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 
+# ── DATA EXPORT CONFIG ────────────────────────────────────────────────────────
+DATA_EXPORT_FILE = "trading_data.json"  
+EXPORT_ON_START = True                   
+EXPORT_ON_STOP = True                    
+EXPORT_INTERVAL = 60                     
+
 app = Flask(__name__)
 CORS(app)
 
-# ── CONFIG CONSTANTS ──────────────────────────────────────────────────────────
+# ── CONFIG CONSTANTS & DEFAULTS ───────────────────────────────────────────────
 
-RSI_PERIOD        = 14       # RSI lookback period
-RSI_OVERSOLD      = 35       # RSI below this → valid buy zone
-RSI_OVERBOUGHT    = 65       # RSI above this → valid sell zone
-BB_WINDOW         = 20       # Bollinger Band SMA period
-BB_STDDEV         = 2        # Standard deviations for bands
-MIN_BANDWIDTH     = 0.02     # Min band width as fraction of SMA (filters squeezes)
-BUY_RISK_PCT      = 0.20     # Fraction of USD balance to risk per buy
-SELL_PCT          = 0.50     # Fraction of holdings to sell per signal
-STOP_LOSS_PCT     = 0.07     # Stop-loss: sell if price drops this % below avg entry
-TRADE_COOLDOWN    = 3        # Min intervals between any two trades
+DEFAULT_RSI_PERIOD     = 14
+DEFAULT_RSI_OVERSOLD   = 35
+DEFAULT_RSI_OVERBOUGHT = 65
+DEFAULT_BB_WINDOW      = 20
+DEFAULT_BB_STDDEV      = 2.0
+MIN_BANDWIDTH          = 0.0002
+SELL_PCT               = 0.50
+TRADE_COOLDOWN         = 3
+
+# ── NEURAL NETWORK ────────────────────────────────────────────────────────────
+
+class NeuralNetwork:
+    """Multi-layer feedforward neural network with online backpropagation.
+
+    Architecture: input → hidden1 (ReLU) → hidden2 (ReLU) → hidden3 (ReLU) → output (tanh)
+    Training:     SGD with per-sample backprop + gradient clipping
+    Init:         Xavier / He initialization
+    """
+
+    def __init__(self, layer_sizes, learning_rate=0.005):
+        self.layer_sizes = list(layer_sizes)     # e.g. [8, 16, 8, 4, 1]
+        self.lr = learning_rate
+        self.weights = []
+        self.biases = []
+        # Xavier / He init
+        for i in range(len(layer_sizes) - 1):
+            fan_in  = layer_sizes[i]
+            fan_out = layer_sizes[i + 1]
+            std = math.sqrt(2.0 / fan_in)  # He init for ReLU
+            w = [[random.gauss(0, std) for _ in range(fan_out)] for _ in range(fan_in)]
+            b = [0.0] * fan_out
+            self.weights.append(w)
+            self.biases.append(b)
+        # Tracking
+        self.predictions_made   = 0
+        self.correct_directions = 0
+        self.accuracy           = 0.0
+        self.last_prediction    = 0.0
+        self.last_activations   = None
+        self.last_price         = None
+        self.train_loss         = 0.0
+
+    # ── Activations ───────────────────────────────────────────────────────
+    @staticmethod
+    def _relu(x):
+        return max(0.0, x)
+
+    @staticmethod
+    def _relu_deriv(x):
+        return 1.0 if x > 0 else 0.0
+
+    @staticmethod
+    def _tanh(x):
+        x = max(-10.0, min(10.0, x))  # clamp to avoid overflow
+        return math.tanh(x)
+
+    @staticmethod
+    def _tanh_deriv(output):
+        return 1.0 - output * output
+
+    # ── Forward pass ──────────────────────────────────────────────────────
+    def forward(self, inputs):
+        """Returns (output_scalar, list_of_layer_activations)."""
+        activations = [list(inputs)]  # layer 0 = input
+        current = list(inputs)
+
+        for layer_idx in range(len(self.weights)):
+            w = self.weights[layer_idx]
+            b = self.biases[layer_idx]
+            is_output = (layer_idx == len(self.weights) - 1)
+            next_layer = []
+            for j in range(len(b)):
+                z = b[j]
+                for k in range(len(current)):
+                    z += current[k] * w[k][j]
+                if is_output:
+                    a = self._tanh(z)    # output uses tanh → range [-1, 1]
+                else:
+                    a = self._relu(z)    # hidden uses ReLU
+                next_layer.append(a)
+            activations.append(next_layer)
+            current = next_layer
+
+        return current[0], activations
+
+    # ── Backpropagation ───────────────────────────────────────────────────
+    def train(self, inputs, target):
+        """Single-sample online SGD with backpropagation."""
+        output, activations = self.forward(inputs)
+        error = target - output
+        self.train_loss = error * error  # MSE for one sample
+
+        # Output layer delta
+        deltas = [None] * len(self.weights)
+        out_deriv = self._tanh_deriv(output)
+        deltas[-1] = [error * out_deriv]
+
+        # Hidden layer deltas (backprop)
+        for layer_idx in range(len(self.weights) - 2, -1, -1):
+            layer_act = activations[layer_idx + 1]  # activations of this layer
+            next_deltas = deltas[layer_idx + 1]
+            w = self.weights[layer_idx + 1]
+            curr_deltas = []
+            for j in range(len(layer_act)):
+                # Sum of (weight × delta) from next layer
+                downstream = 0.0
+                for k in range(len(next_deltas)):
+                    downstream += w[j][k] * next_deltas[k]
+                d = downstream * self._relu_deriv(layer_act[j])
+                curr_deltas.append(d)
+            deltas[layer_idx] = curr_deltas
+
+        # Gradient clipping constant
+        max_grad = 1.0
+
+        # Update weights and biases
+        for layer_idx in range(len(self.weights)):
+            layer_input = activations[layer_idx]
+            layer_delta = deltas[layer_idx]
+            for j in range(len(layer_delta)):
+                for k in range(len(layer_input)):
+                    grad = layer_delta[j] * layer_input[k]
+                    grad = max(-max_grad, min(max_grad, grad))  # clip
+                    self.weights[layer_idx][k][j] += self.lr * grad
+                grad_b = layer_delta[j]
+                grad_b = max(-max_grad, min(max_grad, grad_b))
+                self.biases[layer_idx][j] += self.lr * grad_b
+
+        return output, error
+
+    # ── Predict (convenience) ─────────────────────────────────────────────
+    def predict(self, inputs):
+        output, activations = self.forward(inputs)
+        self.last_activations = activations
+        self.last_prediction = output
+        return output
+
+    # ── Accuracy tracking ─────────────────────────────────────────────────
+    def update_accuracy(self, predicted, actual):
+        if (actual > 0 and predicted > 0) or (actual < 0 and predicted < 0):
+            self.correct_directions += 1
+        self.predictions_made += 1
+        self.accuracy = (self.correct_directions / self.predictions_made) * 100 if self.predictions_made > 0 else 0.0
+
+    # ── Serialisation helpers (for API) ───────────────────────────────────
+    def get_layer_norms(self):
+        """Return average absolute weight per layer for the UI."""
+        norms = []
+        for w in self.weights:
+            total = 0.0
+            count = 0
+            for row in w:
+                for v in row:
+                    total += abs(v)
+                    count += 1
+            norms.append(round(total / max(count, 1), 4))
+        return norms
+
+    def get_output_weights(self):
+        """Return the final layer's weight vector (for visualising feature importance)."""
+        if self.weights:
+            last_w = self.weights[-1]
+            return [row[0] for row in last_w]  # single output neuron
+        return []
+
+
+# ── FEATURE ENGINEERING ───────────────────────────────────────────────────────
+
+def compute_features(price, prices_list, sma, upper, lower, rsi, bandwidth):
+    """Build an 8-dimensional feature vector from raw indicators.
+
+    Features:
+      0. f_rsi         — RSI normalised to [-1, 1] centred on 50
+      1. f_bb_pos      — Price position within Bollinger Bands [-0.5, 0.5]
+      2. f_bw          — Scaled bandwidth (volatility proxy)
+      3. f_momentum    — Short-term price momentum (5-tick % change)
+      4. f_volatility  — Recent price volatility (stddev of last 10 returns)
+      5. f_price_sma   — Price deviation from SMA as a ratio
+      6. f_consec_dir  — Consecutive up/down tick direction score
+      7. f_mean_rev    — Mean-reversion signal (how far from SMA, scaled)
+    """
+    features = [0.0] * 8
+
+    bb_range = upper - lower if (upper and lower) else 1.0
+    if bb_range == 0:
+        bb_range = 1.0
+
+    # 0 — RSI normalised
+    features[0] = (rsi - 50) / 50.0 if rsi else 0.0
+
+    # 1 — Bollinger Band position
+    features[1] = ((price - lower) / bb_range) - 0.5 if lower else 0.0
+
+    # 2 — Bandwidth (scaled)
+    features[2] = (bandwidth * 100) if bandwidth else 0.0
+
+    # 3 — 5-tick momentum
+    if len(prices_list) >= 6:
+        old_p = prices_list[-6]
+        features[3] = ((price - old_p) / old_p) * 100 if old_p != 0 else 0.0
+    
+    # 4 — Volatility (stddev of last 10 returns)
+    if len(prices_list) >= 11:
+        returns = []
+        for i in range(-10, 0):
+            p_prev = prices_list[i - 1]
+            p_curr = prices_list[i]
+            if p_prev != 0:
+                returns.append((p_curr - p_prev) / p_prev * 100)
+        if len(returns) >= 2:
+            features[4] = statistics.stdev(returns)
+        elif len(returns) == 1:
+            features[4] = abs(returns[0])
+
+    # 5 — Price / SMA ratio deviation
+    if sma and sma != 0:
+        features[5] = ((price - sma) / sma) * 100  # % above/below SMA
+
+    # 6 — Consecutive direction score
+    if len(prices_list) >= 4:
+        streak = 0
+        for i in range(-1, -4, -1):
+            if prices_list[i] > prices_list[i - 1]:
+                streak += 1
+            elif prices_list[i] < prices_list[i - 1]:
+                streak -= 1
+        features[6] = streak / 3.0  # normalise to [-1, 1]
+
+    # 7 — Mean-reversion intensity (z-score from SMA)
+    if sma and sma != 0 and len(prices_list) >= 5:
+        recent = prices_list[-5:]
+        std = statistics.stdev(recent) if len(recent) >= 2 else 1.0
+        if std > 0:
+            features[7] = (price - sma) / std  # z-score
+
+    return features
+
 
 # ── STATE ─────────────────────────────────────────────────────────────────────
 
+# Neural network instance (created fresh on each /api/start)
+neural_net = None   # type: NeuralNetwork | None
+
+NN_ARCHITECTURE = [8, 16, 8, 4, 1]  # default layer sizes
+
 state = {
-    "is_running":        False,
-    "symbol":            "BTC",
-    "interval":          300,
-    "trade_amt":         500.0,   # kept for UI display, sizing is now % based
-    "api_key":           "",
-    "price":             0.0,
-    "sma":               None,
-    "upper":             None,
-    "lower":             None,
-    "rsi":               None,
-    "bandwidth":         None,
-    "portfolio":         {"USD": 10000.0, "holdings": {}},
-    "window_size":       BB_WINDOW,
-    # v2 signal state
-    "avg_buy_price":     None,
-    "was_below_lower":   False,
-    "was_above_upper":   False,
-    "last_trade_interval": 0,
-    "interval_count":    0,
-    "total_trades":      0,
-    "total_buys":        0,
-    "total_sells":       0,
-    "stop_losses_hit":   0,
+    "is_running":            False,
+    "symbol":                "BTC",
+    "interval":              300,
+    "trade_amt":             500.0,
+    "api_key":               "",
+    "price":                 0.0,
+    "sma":                   None,
+    "upper":                 None,
+    "lower":                 None,
+    "rsi":                   None,
+    "bandwidth":             None,
+    "portfolio":             {"USD": 10000.0, "holdings": {}},
+    "window_size":           DEFAULT_BB_WINDOW,
+    "avg_buy_price":         None,
+    "was_below_lower":       False,
+    "was_above_upper":       False,
+    "last_trade_interval":   0,
+    "interval_count":        0,
+    "total_trades":          0,
+    "total_buys":            0,
+    "total_sells":           0,
+    "stop_losses_hit":       0,
+
+    # AI Engine State  (kept for API compat, populated from neural_net)
+    "ai_weights":            [0.0, 0.0, 0.0],
+    "ai_bias":               0.0,
+    "ai_last_features":      None,
+    "ai_last_price":         None,
+    "ai_prediction":         0.0,
+    "ai_accuracy_score":     0.0,
+    "ai_predictions_made":   0,
+    "ai_correct_directions": 0,
+
+    # Configurable variables
+    "position_mode":         "percent",
+    "buy_risk_pct":          0.20,
+    "stop_loss_pct":         0.07,
+    "ai_learning_rate":      0.005,
+    "bb_window":             DEFAULT_BB_WINDOW,
+    "bb_stddev":             DEFAULT_BB_STDDEV,
+    "rsi_period":            DEFAULT_RSI_PERIOD,
+    "rsi_oversold":          DEFAULT_RSI_OVERSOLD,
+    "rsi_overbought":        DEFAULT_RSI_OVERBOUGHT,
+
+    # Net Worth calculation helper
+    "starting_wallet":       10000.0,
+
+    # History tracking
+    "history":               [],
+    "last_tick_trade":       None,
+
+    # Neural network metadata (for UI)
+    "nn_architecture":       NN_ARCHITECTURE,
+    "nn_layer_norms":        [],
+    "nn_train_loss":         0.0,
+    "nn_feature_names":      ["RSI", "BB Pos", "Bandwidth", "Momentum", "Volatility", "P/SMA", "ConsecDir", "MeanRev"],
 }
 
-price_history = deque(maxlen=BB_WINDOW + RSI_PERIOD + 5)
+price_history = deque(maxlen=50)
 log_queue     = queue.Queue()
 bot_thread    = None
 CONFIG_FILE   = "config.json"
@@ -83,7 +360,6 @@ def log(message):
     log_queue.put(entry)
     print(entry)
 
-
 def load_config():
     if os.path.exists(CONFIG_FILE):
         try:
@@ -93,7 +369,6 @@ def load_config():
                     state["api_key"] = config["api_key"]
         except Exception:
             log("System: Failed to load config.")
-
 
 def save_config(key):
     try:
@@ -106,20 +381,18 @@ def save_config(key):
 # ── INDICATORS ────────────────────────────────────────────────────────────────
 
 def compute_bollinger(prices):
-    """Returns (sma, upper, lower) or (None, None, None) if insufficient data."""
-    if len(prices) < BB_WINDOW:
+    bb_w = state.get("bb_window", DEFAULT_BB_WINDOW)
+    if len(prices) < bb_w:
         return None, None, None
-    window = list(prices)[-BB_WINDOW:]
+    window = list(prices)[-bb_w:]
     sma    = statistics.mean(window)
     std    = statistics.stdev(window)
-    return sma, sma + (std * BB_STDDEV), sma - (std * BB_STDDEV)
+    bb_dev = state.get("bb_stddev", DEFAULT_BB_STDDEV)
+    return sma, sma + (std * bb_dev), sma - (std * bb_dev)
 
-
-def compute_rsi(prices, period=RSI_PERIOD):
-    """
-    Classic Wilder RSI using simple average for seed calculation.
-    Returns float 0-100, or None if insufficient data.
-    """
+def compute_rsi(prices, period=None):
+    if period is None:
+        period = state.get("rsi_period", DEFAULT_RSI_PERIOD)
     prices = list(prices)
     if len(prices) < period + 1:
         return None
@@ -137,9 +410,7 @@ def compute_rsi(prices, period=RSI_PERIOD):
     rsi = 100.0 - (100.0 / (1.0 + rs))
     return round(rsi, 2)
 
-
 def compute_bandwidth(sma, upper, lower):
-    """Band width as a fraction of SMA. Low value = squeeze."""
     if sma and sma != 0:
         return (upper - lower) / sma
     return None
@@ -171,7 +442,14 @@ def execute_trade(side, price, reason="signal"):
     portfolio = state["portfolio"]
 
     if side == "BUY":
-        trade_amt = portfolio["USD"] * BUY_RISK_PCT
+        if state.get("position_mode", "percent") == "fixed":
+            trade_amt = state.get("trade_amt", 500.0)
+        else:
+            trade_amt = portfolio["USD"] * state.get("buy_risk_pct", 0.20)
+
+        if trade_amt > portfolio["USD"]:
+            trade_amt = portfolio["USD"]
+
         if trade_amt < 1.0:
             log(f"Risk: Skipped BUY — insufficient USD balance (${portfolio['USD']:.2f})")
             return False
@@ -183,21 +461,15 @@ def execute_trade(side, price, reason="signal"):
         prev_avg      = state["avg_buy_price"] or price
         portfolio["holdings"][symbol] = prev_holdings + bought
 
-        # Weighted average entry price
         if prev_holdings > 0:
-            state["avg_buy_price"] = (
-                (prev_avg * prev_holdings + price * bought)
-                / (prev_holdings + bought)
-            )
+            state["avg_buy_price"] = ((prev_avg * prev_holdings + price * bought) / (prev_holdings + bought))
         else:
             state["avg_buy_price"] = price
 
         state["total_trades"] += 1
         state["total_buys"]   += 1
-        log(
-            f"Execution: Filled BUY  {bought:.6f} {symbol}  @  ${price:,.2f}"
-            f"  |  Risked: ${trade_amt:,.2f}  |  Reason: {reason}"
-        )
+        state["last_tick_trade"] = "BUY"
+        log(f"Execution: Filled BUY  {bought:.6f} {symbol}  @  ${price:,.2f}  |  Risked: ${trade_amt:,.2f}  |  Reason: {reason}")
         return True
 
     elif side == "SELL":
@@ -206,7 +478,9 @@ def execute_trade(side, price, reason="signal"):
             log(f"Risk: Skipped SELL — no {symbol} holdings")
             return False
 
-        sell_qty = owned * SELL_PCT
+        # Liquidate entire position on stop-loss, otherwise sell SELL_PCT (50%)
+        sell_pct = 1.0 if reason == "stop-loss" else SELL_PCT
+        sell_qty = owned * sell_pct
         proceeds = sell_qty * price
         portfolio["USD"] += proceeds
         portfolio["holdings"][symbol] = owned - sell_qty
@@ -216,47 +490,85 @@ def execute_trade(side, price, reason="signal"):
             pnl = (price - state["avg_buy_price"]) / state["avg_buy_price"] * 100
             pnl_str = f"  |  PnL: {pnl:+.2f}%"
 
-        # Clear entry tracking if position is now negligible
         if portfolio["holdings"][symbol] < 1e-8:
             portfolio["holdings"][symbol] = 0
             state["avg_buy_price"] = None
 
         state["total_trades"] += 1
         state["total_sells"]  += 1
-        log(
-            f"Execution: Filled SELL {sell_qty:.6f} {symbol}  @  ${price:,.2f}"
-            f"  |  Proceeds: ${proceeds:,.2f}{pnl_str}  |  Reason: {reason}"
-        )
+        state["last_tick_trade"] = "STOP_LOSS" if reason == "stop-loss" else "SELL"
+        log(f"Execution: Filled SELL {sell_qty:.6f} {symbol}  @  ${price:,.2f}  |  Proceeds: ${proceeds:,.2f}{pnl_str}  |  Reason: {reason}")
         return True
 
     return False
 
+# ── EXPORT STATE ──────────────────────────────────────────────────────────────
 
-# ── BOT LOOP ──────────────────────────────────────────────────────────────────
+def save_data_to_json():
+    try:
+        export_data = {
+            "timestamp": time.strftime('%Y-%m-%d %H:%M:%S'),
+            "symbol": state["symbol"],
+            "price": state["price"] if state["price"] else None,
+            "rsi": state["rsi"],
+            "bandwidth": state["bandwidth"],
+            "portfolio_usd": state["portfolio"]["USD"],
+            "is_running": state["is_running"],
+            "ai_data": {
+                "weights": state["ai_weights"],
+                "bias": state["ai_bias"],
+                "accuracy": state["ai_accuracy_score"]
+            }
+        }
+        with open(DATA_EXPORT_FILE, 'w') as f:
+            json.dump(export_data, f, indent=2)
+    except Exception as e:
+        log(f"Export Error: {e}")
+
+def export_on_interval():
+    if EXPORT_INTERVAL > 0:
+        last_export = getattr(state, "last_export_time", None)
+        if last_export is None or (time.time() - last_export) >= EXPORT_INTERVAL:
+            save_data_to_json()
+            state["last_export_time"] = time.time()
+
+
+# ── BOT LOOP WITH NEURAL NETWORK ──────────────────────────────────────────────
+
+def _save_history_point(price, sma, upper, lower, rsi):
+    """Helper to append a history point and trim to 50."""
+    history_point = {
+        "price": price,
+        "sma": sma,
+        "upper": upper,
+        "lower": lower,
+        "rsi": rsi,
+        "timestamp": time.strftime('%H:%M:%S'),
+        "trade": state.get("last_tick_trade", None)
+    }
+    state["history"].append(history_point)
+    state["history"] = state["history"][-50:]
+    state["last_tick_trade"] = None
+
 
 def bot_loop():
-    global price_history
+    global price_history, neural_net
     price_history.clear()
 
-    # Reset all v2 signal state
+    # Reset signal state
     state["was_below_lower"]      = False
     state["was_above_upper"]      = False
     state["last_trade_interval"]  = 0
     state["interval_count"]       = 0
     state["avg_buy_price"]        = None
-    state["total_trades"]         = 0
-    state["total_buys"]           = 0
-    state["total_sells"]          = 0
-    state["stop_losses_hit"]      = 0
 
+    if EXPORT_ON_START:
+        save_data_to_json()
+
+    arch = state.get("nn_architecture", NN_ARCHITECTURE)
+    lr   = state.get("ai_learning_rate", 0.005)
     log(f"System: Data stream initialized for {state['symbol']}")
-    log(
-        f"System: Engine v2 — RSI({RSI_PERIOD}) + BB({BB_WINDOW})  |  "
-        f"Stop-loss: {STOP_LOSS_PCT*100:.0f}%  |  "
-        f"Buy size: {BUY_RISK_PCT*100:.0f}% of USD  |  "
-        f"Sell size: {SELL_PCT*100:.0f}% of holdings  |  "
-        f"Cooldown: {TRADE_COOLDOWN} intervals"
-    )
+    log(f"System: Neural Network online — arch {arch}, lr={lr}")
 
     while state["is_running"]:
         price = fetch_price(state["symbol"], state["api_key"])
@@ -274,123 +586,121 @@ def bot_loop():
         rsi       = compute_rsi(prices)
         bandwidth = compute_bandwidth(sma, upper, lower) if sma else None
 
-        state["sma"]       = sma
-        state["upper"]     = upper
-        state["lower"]     = lower
-        state["rsi"]       = rsi
-        state["bandwidth"] = bandwidth
+        state["sma"], state["upper"], state["lower"] = sma, upper, lower
+        state["rsi"], state["bandwidth"] = rsi, bandwidth
 
-        # ── Calibrating: not enough data yet ────────────────────────────────
         if sma is None or rsi is None:
-            needed = max(BB_WINDOW, RSI_PERIOD + 1) - len(prices)
+            needed = max(state["bb_window"], state["rsi_period"] + 1) - len(prices)
             log(f"Calibrating: ${price:,.2f}  —  {needed} more sample(s) needed")
+            _save_history_point(price, None, None, None, None)
             _interruptible_sleep()
             continue
 
-        rsi_str = f"{rsi:.1f}"
-        bw_str  = f"{bandwidth:.4f}" if bandwidth is not None else "?"
-        log(
-            f"Signal: Price=${price:,.2f}  SMA=${sma:,.2f}  "
-            f"BB=[{lower:,.2f}, {upper:,.2f}]  RSI={rsi_str}  BW={bw_str}"
-        )
+        export_on_interval()
 
-        # ── Cooldown check ───────────────────────────────────────────────────
+        # ── Build feature vector ──────────────────────────────────────────────
+        features = compute_features(price, prices, sma, upper, lower, rsi, bandwidth)
+
+        # ── 1. NEURAL NETWORK TRAINING (backprop on previous prediction) ─────
+        if neural_net and neural_net.last_price is not None:
+            actual_pct = ((price - neural_net.last_price) / neural_net.last_price) * 100
+            predicted  = neural_net.last_prediction
+
+            # Update accuracy
+            neural_net.update_accuracy(predicted, actual_pct)
+
+            # Backpropagation — target is the actual movement, clamped
+            target_clamped = max(-1.0, min(1.0, actual_pct))  # clamp to tanh range
+            neural_net.train(state["ai_last_features"], target_clamped)
+
+            # Sync tracking to state for API
+            state["ai_predictions_made"]   = neural_net.predictions_made
+            state["ai_correct_directions"] = neural_net.correct_directions
+            state["ai_accuracy_score"]     = neural_net.accuracy
+            state["nn_train_loss"]         = neural_net.train_loss
+            state["nn_layer_norms"]        = neural_net.get_layer_norms()
+
+        # ── 2. NEURAL NETWORK PREDICTION ──────────────────────────────────────
+        ai_pred = 0.0
+        if neural_net and (upper - lower) != 0:
+            ai_pred = neural_net.predict(features)
+            neural_net.last_price = price
+            state["ai_last_features"] = features
+            state["ai_prediction"]    = ai_pred
+            state["ai_last_price"]    = price
+
+            # Populate legacy weight fields from the output layer for UI compat
+            out_w = neural_net.get_output_weights()
+            state["ai_weights"] = out_w[:3] + [0.0] * max(0, 3 - len(out_w))
+            state["ai_bias"]    = neural_net.biases[-1][0] if neural_net.biases else 0.0
+        else:
+            state["ai_prediction"] = 0.0
+
+        ai_pred_str = f"{ai_pred:+.4f}"
+        log(f"Signal: ${price:,.2f} | RSI={rsi:.1f} | NN output: {ai_pred_str} (Acc: {state['ai_accuracy_score']:.1f}%)")
+
+        # ── Cooldown & Risk ───────────────────────────────────────────────────
         intervals_since_trade = state["interval_count"] - state["last_trade_interval"]
         on_cooldown           = intervals_since_trade < TRADE_COOLDOWN
-
-        if on_cooldown:
-            log(
-                f"Risk: Cooldown active — "
-                f"{TRADE_COOLDOWN - intervals_since_trade} interval(s) remaining"
-            )
-
-        # ── Stop-loss (bypasses cooldown) ────────────────────────────────────
         avg_entry = state["avg_buy_price"]
         holdings  = state["portfolio"]["holdings"].get(state["symbol"], 0)
 
-        if avg_entry and holdings > 0 and price < avg_entry * (1 - STOP_LOSS_PCT):
-            loss_pct = (price - avg_entry) / avg_entry * 100
-            log(
-                f"Risk: Stop-loss triggered!  "
-                f"Entry=${avg_entry:,.2f}  Current=${price:,.2f}  "
-                f"Drawdown={loss_pct:+.2f}%"
-            )
+        # Stop-loss
+        stop_loss_pct = state.get("stop_loss_pct", 0.07)
+        if avg_entry and holdings > 0 and price < avg_entry * (1 - stop_loss_pct):
             if execute_trade("SELL", price, reason="stop-loss"):
-                state["stop_losses_hit"]       += 1
-                state["last_trade_interval"]    = state["interval_count"]
-                state["was_above_upper"]        = False
-                state["was_below_lower"]        = False
+                state["stop_losses_hit"] += 1
+                state["last_trade_interval"] = state["interval_count"]
+                state["was_above_upper"] = state["was_below_lower"] = False
+            _save_history_point(price, sma, upper, lower, rsi)
             _interruptible_sleep()
             continue
 
-        # ── Bandwidth filter: skip squeeze periods ────────────────────────────
         if bandwidth is not None and bandwidth < MIN_BANDWIDTH:
-            log(f"Signal: BB squeeze (BW={bw_str} < {MIN_BANDWIDTH}) — no trade")
+            _save_history_point(price, sma, upper, lower, rsi)
             _interruptible_sleep()
             continue
 
-        # ── Band re-entry tracking ────────────────────────────────────────────
-        if price < lower:
-            if not state["was_below_lower"]:
-                log(
-                    f"Signal: Broke below lower band (${lower:,.2f})  "
-                    f"|  RSI={rsi_str} — watching for re-entry"
-                )
-            state["was_below_lower"] = True
+        # Band tracking
+        if price < lower: state["was_below_lower"] = True
+        elif price > upper: state["was_above_upper"] = True
 
-        elif price > upper:
-            if not state["was_above_upper"]:
-                log(
-                    f"Signal: Broke above upper band (${upper:,.2f})  "
-                    f"|  RSI={rsi_str} — watching for re-entry"
-                )
-            state["was_above_upper"] = True
-
-        # ── BUY: crossed back inside from below + RSI oversold ───────────────
+        # ── BUY CONDITIONS ───────────────────────────────────────────────────
         elif state["was_below_lower"] and price >= lower:
             state["was_below_lower"] = False
-            log(f"Signal: Re-entered lower band  |  RSI={rsi_str}")
-
+            rsi_oversold = state.get("rsi_oversold", 35)
             if on_cooldown:
-                log("Risk: BUY signal skipped — still on cooldown")
-            elif rsi > RSI_OVERSOLD:
-                log(
-                    f"Filter: BUY skipped — RSI {rsi_str} not oversold "
-                    f"(threshold < {RSI_OVERSOLD})"
-                )
+                log("Risk: BUY skipped — cooldown")
+            elif rsi > rsi_oversold:
+                log(f"Filter: BUY skipped — RSI {rsi:.1f} not oversold")
+            elif ai_pred < 0:
+                log(f"NN Filter: BUY vetoed — network predicts drop ({ai_pred_str})")
             else:
-                if execute_trade("BUY", price, reason="BB re-entry + RSI oversold"):
+                if execute_trade("BUY", price, reason="BB re-entry + RSI + NN Appv"):
                     state["last_trade_interval"] = state["interval_count"]
 
-        # ── SELL: crossed back inside from above + RSI overbought ────────────
+        # ── SELL CONDITIONS ──────────────────────────────────────────────────
         elif state["was_above_upper"] and price <= upper:
             state["was_above_upper"] = False
-            log(f"Signal: Re-entered upper band  |  RSI={rsi_str}")
-
+            rsi_overbought = state.get("rsi_overbought", 65)
             if on_cooldown:
-                log("Risk: SELL signal skipped — still on cooldown")
-            elif rsi < RSI_OVERBOUGHT:
-                log(
-                    f"Filter: SELL skipped — RSI {rsi_str} not overbought "
-                    f"(threshold > {RSI_OVERBOUGHT})"
-                )
+                log("Risk: SELL skipped — cooldown")
+            elif rsi < rsi_overbought:
+                log(f"Filter: SELL skipped — RSI {rsi:.1f} not overbought")
+            elif ai_pred > 0:
+                log(f"NN Filter: SELL vetoed — network predicts pump ({ai_pred_str})")
             else:
-                if execute_trade("SELL", price, reason="BB re-entry + RSI overbought"):
+                if execute_trade("SELL", price, reason="BB re-entry + RSI + NN Appv"):
                     state["last_trade_interval"] = state["interval_count"]
 
+        _save_history_point(price, sma, upper, lower, rsi)
         _interruptible_sleep()
 
-    log(
-        f"System: Data stream terminated.  "
-        f"Trades: {state['total_trades']}  "
-        f"(Buys: {state['total_buys']}  "
-        f"Sells: {state['total_sells']}  "
-        f"Stop-losses: {state['stop_losses_hit']})"
-    )
+    if EXPORT_ON_STOP:
+        save_data_to_json()
 
 
 def _interruptible_sleep():
-    """Sleep for `interval` seconds but exit immediately if bot is stopped."""
     for _ in range(state["interval"]):
         if not state["is_running"]:
             break
@@ -402,6 +712,21 @@ def _interruptible_sleep():
 @app.route("/api/status", methods=["GET"])
 def get_status():
     symbol = state["symbol"]
+    price = state["price"] or 0.0
+    holdings = state["portfolio"]["holdings"].get(symbol, 0)
+    usd = state["portfolio"]["USD"]
+    
+    net_worth = usd + (holdings * price)
+    starting = state.get("starting_wallet", 10000.0)
+    pnl_usd = net_worth - starting
+    pnl_pct = (pnl_usd / starting * 100) if starting > 0 else 0.0
+    
+    # Gather live neural net layer activations for the UI
+    nn_activations = []
+    if neural_net and neural_net.last_activations:
+        for layer in neural_net.last_activations:
+            nn_activations.append([round(v, 4) for v in layer])
+
     return jsonify({
         "is_running":      state["is_running"],
         "symbol":          symbol,
@@ -411,19 +736,31 @@ def get_status():
         "lower":           state["lower"],
         "rsi":             state["rsi"],
         "bandwidth":       state["bandwidth"],
-        "usd":             state["portfolio"]["USD"],
-        "holdings":        state["portfolio"]["holdings"].get(symbol, 0),
+        "usd":             usd,
+        "holdings":        holdings,
+        "net_worth":       net_worth,
+        "pnl_usd":         pnl_usd,
+        "pnl_pct":         pnl_pct,
         "api_key":         state["api_key"],
         "interval":        state["interval"],
         "trade_amt":       state["trade_amt"],
-        "wallet":          state["portfolio"]["USD"],
         "avg_buy_price":   state["avg_buy_price"],
         "total_trades":    state["total_trades"],
         "total_buys":      state["total_buys"],
         "total_sells":     state["total_sells"],
         "stop_losses_hit": state["stop_losses_hit"],
+        "ai_prediction":   state["ai_prediction"],
+        "ai_accuracy":     state["ai_accuracy_score"],
+        "ai_weights":      state["ai_weights"],
+        "ai_bias":         state["ai_bias"],
+        "history":         list(state["history"]),
+        # Neural network specific
+        "nn_architecture":   state.get("nn_architecture", NN_ARCHITECTURE),
+        "nn_layer_norms":    state.get("nn_layer_norms", []),
+        "nn_train_loss":     state.get("nn_train_loss", 0.0),
+        "nn_activations":    nn_activations,
+        "nn_feature_names":  state.get("nn_feature_names", []),
     })
-
 
 @app.route("/api/start", methods=["POST"])
 def start_bot():
@@ -444,33 +781,49 @@ def start_bot():
     state["trade_amt"]             = float(body.get("trade_amt", 500))
     state["portfolio"]["USD"]      = float(body.get("wallet", 10000))
     state["portfolio"]["holdings"] = {}
-    state["window_size"]           = BB_WINDOW
-    state["price"]                 = 0.0
-    state["sma"]                   = None
-    state["upper"]                 = None
-    state["lower"]                 = None
-    state["rsi"]                   = None
-    state["bandwidth"]             = None
-    state["avg_buy_price"]         = None
+    
+    # Configurable variables
+    state["position_mode"]         = body.get("position_mode", "percent")
+    state["buy_risk_pct"]          = float(body.get("buy_risk_pct", 0.20))
+    state["stop_loss_pct"]         = float(body.get("stop_loss_pct", 0.07))
+    state["ai_learning_rate"]      = float(body.get("ai_learning_rate", 0.01))
+    state["bb_window"]             = int(body.get("bb_window", DEFAULT_BB_WINDOW))
+    state["bb_stddev"]             = float(body.get("bb_stddev", DEFAULT_BB_STDDEV))
+    state["rsi_period"]            = int(body.get("rsi_period", DEFAULT_RSI_PERIOD))
+    state["rsi_oversold"]          = int(body.get("rsi_oversold", DEFAULT_RSI_OVERSOLD))
+    state["rsi_overbought"]        = int(body.get("rsi_overbought", DEFAULT_RSI_OVERBOUGHT))
+    
+    # Initialize dynamic history
+    state["starting_wallet"]       = float(body.get("wallet", 10000.0))
+    state["history"]               = []
+    state["last_tick_trade"]       = None
 
-    price_history = deque(maxlen=BB_WINDOW + RSI_PERIOD + 5)
+    # Create fresh neural network
+    lr = state["ai_learning_rate"]
+    neural_net = NeuralNetwork(NN_ARCHITECTURE, learning_rate=lr)
+    state["nn_architecture"]       = NN_ARCHITECTURE
+    state["nn_layer_norms"]        = []
+    state["nn_train_loss"]         = 0.0
+    state["ai_predictions_made"]   = 0
+    state["ai_correct_directions"] = 0
+    state["ai_accuracy_score"]     = 0.0
+    state["ai_last_features"]      = None
+    state["ai_last_price"]         = None
 
+    price_history = deque(maxlen=state["bb_window"] + state["rsi_period"] + 5)
     state["is_running"] = True
     bot_thread = threading.Thread(target=bot_loop, daemon=True)
     bot_thread.start()
 
     return jsonify({"status": "started"})
 
-
 @app.route("/api/stop", methods=["POST"])
 def stop_bot():
     state["is_running"] = False
     return jsonify({"status": "stopped"})
 
-
 @app.route("/api/logs", methods=["GET"])
 def stream_logs():
-    """Server-Sent Events endpoint for real-time log streaming."""
     def generate():
         yield "retry: 1000\n\n"
         while True:
@@ -479,20 +832,13 @@ def stream_logs():
                 yield f"data: {json.dumps(msg)}\n\n"
             except queue.Empty:
                 yield ": heartbeat\n\n"
-
-    return Response(
-        generate(),
-        mimetype="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-    )
-
+    return Response(generate(), mimetype="text/event-stream")
 
 @app.route("/api/config", methods=["GET"])
 def get_config():
     return jsonify({"api_key": state.get("api_key", "")})
 
-
 if __name__ == "__main__":
     load_config()
-    log("System: ultraexchange engine online  |  port 5678  |  math engine v2")
+    log(f"System: ultraexchange engine online  |  port 5678  |  math engine v4 (Neural Network {NN_ARCHITECTURE})")
     app.run(host="127.0.0.1", port=5678, debug=False, threaded=True)

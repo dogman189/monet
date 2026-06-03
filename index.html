@@ -21,9 +21,9 @@
   --border:  rgba(255,255,255,0.08);
   --border2: rgba(255,255,255,0.13);
   --ink:     #f0f4f8;
-  --ink2:    rgba(240,244,248,0.5);
-  --ink3:    rgba(240,244,248,0.25);
-  --ink4:    rgba(240,244,248,0.1);
+  --ink2:    rgba(240,244,248,0.75);
+  --ink3:    rgba(240,244,248,0.45);
+  --ink4:    rgba(240,244,248,0.18);
   --sans:  'Syne', sans-serif;
   --mono:  'Syne Mono', monospace;
   --serif: 'Cormorant Garamond', serif;
@@ -40,9 +40,9 @@ html.light {
   --border:  rgba(0,0,0,0.08);
   --border2: rgba(0,0,0,0.13);
   --ink:     #1a1612;
-  --ink2:    rgba(26,22,18,0.62);
-  --ink3:    rgba(26,22,18,0.38);
-  --ink4:    rgba(26,22,18,0.18);
+  --ink2:    rgba(26,22,18,0.78);
+  --ink3:    rgba(26,22,18,0.48);
+  --ink4:    rgba(26,22,18,0.22);
   --cyan:    #0e7fa8;
   --green:   #0f7d57;
   --rose:    #c73756;
@@ -121,6 +121,14 @@ html.light .boot-ring { border-color:rgba(14,127,168,0.18); border-top-color:var
 html.light #theme-toggle .icon-moon { display:none; }
 html:not(.light) #theme-toggle .icon-sun { display:none; }
 
+/* Dynamic weight/AI overlays in Light Mode */
+html.light .stat-mini { background: rgba(0,0,0,0.02); }
+html.light .ai-pred-bar-wrap { background: rgba(255,255,255,0.6); }
+html.light .weight-bar-bg { background: rgba(0,0,0,0.08); }
+html.light .total-pnl-badge.positive { background: rgba(15,125,87,0.08); }
+html.light .total-pnl-badge.negative { background: rgba(199,55,86,0.08); }
+html.light .chart-container { background: rgba(255,255,255,0.65); }
+
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
 html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); font-family:var(--sans); color:var(--ink); -webkit-font-smoothing:antialiased; transition:background 0.35s; }
 
@@ -151,15 +159,29 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); font
 #status-pill.running .s-dot { background:var(--green); box-shadow:0 0 8px var(--green); animation:sdot 1.8s ease-in-out infinite; }
 @keyframes sdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.65)} }
 
-#controls { grid-column:1; grid-row:2/4; padding:24px 20px 20px; display:flex; flex-direction:column; gap:0; }
-.section-label { font-family:var(--mono); font-size:8.5px; letter-spacing:3px; text-transform:uppercase; color:var(--ink3); margin-bottom:18px; }
-.field { margin-bottom:11px; }
-.field-lbl { display:block; font-size:8.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); margin-bottom:5px; }
-.field-hint { display:block; font-family:var(--mono); font-size:8px; color:var(--ink4); margin-top:4px; letter-spacing:0.5px; }
-.field-input { width:100%; background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:9px; padding:8px 12px; color:var(--ink); font-family:var(--mono); font-size:12px; outline:none; transition:border-color 0.18s,box-shadow 0.18s; -webkit-app-region:no-drag; }
+/* ── CONTROLS & COLLAPSIBLE CONFIG ────────────────────────────────────────── */
+#controls { grid-column:1; grid-row:2/4; padding:20px 16px; display:flex; flex-direction:column; overflow-y:auto; gap:0; }
+#controls::-webkit-scrollbar { width:3px; }
+#controls::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+
+.section-label { font-family:var(--mono); font-size:8.5px; letter-spacing:3px; text-transform:uppercase; color:var(--ink3); margin-bottom:14px; }
+.field { margin-bottom:10px; }
+.field-lbl { display:block; font-size:8.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); margin-bottom:4px; }
+.field-hint { display:block; font-family:var(--mono); font-size:7.5px; color:var(--ink4); margin-top:3px; letter-spacing:0.5px; }
+.field-input { width:100%; background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:9px; padding:7px 10px; color:var(--ink); font-family:var(--mono); font-size:11px; outline:none; transition:border-color 0.18s,box-shadow 0.18s; -webkit-app-region:no-drag; }
 .field-input:focus { border-color:rgba(56,217,245,0.4); box-shadow:0 0 0 3px rgba(56,217,245,0.08); }
 .field-input::placeholder { color:var(--ink4); }
 .field-input:disabled { opacity:0.35; }
+select.field-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='rgba(240,244,248,0.5)' stroke-width='2'%3E%3Cpath d='m2 3 3 3 3-3'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:24px; }
+
+.advanced-settings { margin-top:10px; border-top:1px solid var(--border); padding-top:10px; margin-bottom:10px; }
+.advanced-settings[open] { margin-bottom:14px; }
+.adv-summary { display:flex; justify-content:space-between; align-items:center; font-family:var(--mono); font-size:8.5px; letter-spacing:2px; text-transform:uppercase; color:var(--ink2); cursor:pointer; list-style:none; user-select:none; }
+.adv-summary::-webkit-details-marker { display:none; }
+.adv-chevron { transition:transform 0.2s; }
+.advanced-settings[open] .adv-chevron { transform:rotate(180deg); }
+.adv-fields { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+
 .btn-stack { margin-top:auto; display:flex; flex-direction:column; gap:8px; }
 .btn { height:42px; border:none; border-radius:21px; font-family:var(--sans); font-weight:700; font-size:12px; letter-spacing:0.5px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.18s,opacity 0.15s; -webkit-app-region:no-drag; position:relative; overflow:hidden; }
 .btn::after { content:''; position:absolute;inset:0; background:linear-gradient(160deg,rgba(255,255,255,0.12) 0%,transparent 50%); border-radius:inherit;pointer-events:none; }
@@ -169,73 +191,102 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); font
 .btn-stop { background:transparent; border:1px solid rgba(251,113,133,0.35); color:var(--rose); }
 .btn-stop:not(:disabled):hover { background:rgba(251,113,133,0.09); transform:translateY(-1px); }
 
-#price-panel { grid-column:2; grid-row:2; padding:28px 32px 24px; display:flex; flex-direction:column; justify-content:space-between; }
-.price-top { display:flex; align-items:flex-start; justify-content:space-between; }
+/* ── MARKET TERMINAL & CANVAS CHART ───────────────────────────────────────── */
+#market-terminal { grid-column:2; grid-row:2/4; padding:18px 24px; display:flex; flex-direction:column; justify-content:space-between; }
+.terminal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-shrink:0; }
+.header-left { display:flex; flex-direction:column; gap:4px; }
+.header-right { display:flex; align-items:center; }
 .price-sym { font-family:var(--mono); font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--cyan); }
 .live-indicator { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink3); }
 .live-dot-wrap { width:7px;height:7px;border-radius:50%;background:var(--ink4); }
 .live-dot-wrap.on { background:var(--green); box-shadow:0 0 10px var(--green); animation:ldot 1.8s ease-in-out infinite; }
 @keyframes ldot{0%,100%{opacity:1}50%{opacity:0.35}}
-#price-val { font-family:var(--serif); font-size:80px; font-weight:300; letter-spacing:-2px; line-height:1; color:var(--ink); transition:color 0.45s; white-space:nowrap; margin-top:6px; }
+#price-val { font-family:var(--serif); font-size:52px; font-weight:300; letter-spacing:-1px; line-height:1; color:var(--ink); transition:color 0.45s; white-space:nowrap; }
 #price-val.up { color:var(--green); }
 #price-val.down { color:var(--rose); }
 
-#bb-panel { grid-column:2; grid-row:3; padding:20px 32px; display:flex; flex-direction:column; justify-content:center; gap:12px; }
-.bb-header { display:flex; justify-content:space-between; align-items:center; }
-.bb-title { font-family:var(--mono); font-size:8.5px; letter-spacing:3px; text-transform:uppercase; color:var(--ink3); }
-.bb-sma { font-family:var(--mono); font-size:12px; color:var(--cyan); }
-.band-vis { position:relative; height:34px; display:flex; align-items:center; }
+.chart-container { position:relative; flex:1; min-height:180px; margin-bottom:12px; background:rgba(0,0,0,0.22); border:1px solid var(--border); border-radius:var(--r-sm); overflow:hidden; }
+#price-chart { width:100%; height:100%; display:block; cursor:crosshair; }
+.chart-tooltip { position:absolute; pointer-events:none; background:rgba(14,22,40,0.94); border:1px solid var(--cyan); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:9px; color:var(--ink); z-index:100; box-shadow:0 4px 12px rgba(0,0,0,0.5); transition:opacity 0.1s ease; display:flex; flex-direction:column; gap:2px; }
+.tooltip-time { color:var(--ink3); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:3px; font-weight:bold; }
+.tooltip-row { display:flex; justify-content:space-between; gap:12px; }
+.tooltip-val { font-weight:bold; color:var(--cyan); }
+
+.terminal-footer { display:grid; grid-template-columns:1.2fr 1fr; gap:16px; flex-shrink:0; }
+.footer-lbl { font-family:var(--mono); font-size:8.5px; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); margin-bottom:6px; display:flex; justify-content:space-between; }
+.bb-sma { color:var(--cyan); font-weight:bold; }
+.band-vis { position:relative; height:24px; display:flex; align-items:center; }
 .band-track { position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:3px; background:rgba(255,255,255,0.06); border-radius:3px; }
-.band-zone { position:absolute; top:50%; transform:translateY(-50%); height:10px; background:linear-gradient(90deg,rgba(52,211,153,0.18),rgba(56,217,245,0.12),rgba(251,113,133,0.18)); border-radius:5px; border-left:1.5px solid rgba(52,211,153,0.4); border-right:1.5px solid rgba(251,113,133,0.4); transition:left 0.5s,width 0.5s; }
-.band-needle { position:absolute; top:0; bottom:0; width:2px; background:var(--ink); border-radius:2px; box-shadow:0 0 14px rgba(255,255,255,0.5); transform:translateX(-50%); transition:left 0.5s; }
-.band-end-labels { display:flex; justify-content:space-between; }
-.band-lbl { font-family:var(--mono); font-size:10px; }
+.band-zone { position:absolute; top:50%; transform:translateY(-50%); height:8px; background:linear-gradient(90deg,rgba(52,211,153,0.15),rgba(56,217,245,0.08),rgba(251,113,133,0.15)); border-radius:4px; border-left:1px solid rgba(52,211,153,0.3); border-right:1px solid rgba(251,113,133,0.3); transition:left 0.5s,width 0.5s; }
+.band-needle { position:absolute; top:0; bottom:0; width:2px; background:var(--ink); border-radius:2px; box-shadow:0 0 10px rgba(255,255,255,0.6); transform:translateX(-50%); transition:left 0.5s; }
+.band-end-labels { display:flex; justify-content:space-between; margin-top:2px; }
+.band-lbl { font-family:var(--mono); font-size:9px; }
 .band-lbl.lower { color:var(--green); }
 .band-lbl.upper { color:var(--rose); }
-.bb-stats-row { display:flex; border:1px solid var(--border); border-radius:var(--r-sm); overflow:hidden; }
-.bb-stat { flex:1; padding:9px 14px; border-right:1px solid var(--border); }
-.bb-stat:last-child { border-right:none; }
-.bb-stat-lbl { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); margin-bottom:5px; }
-.bb-stat-val { font-family:var(--mono); font-size:12px; color:var(--ink2); }
 
-.rsi-row { display:flex; align-items:center; gap:14px; border:1px solid var(--border); border-radius:var(--r-sm); padding:9px 14px; }
-.rsi-label-group { display:flex; flex-direction:column; gap:1px; flex-shrink:0; min-width:28px; }
-.rsi-label-lbl { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); }
-.rsi-label-val { font-family:var(--mono); font-size:14px; font-weight:600; color:var(--ink2); transition:color 0.35s; }
+.rsi-row { display:flex; align-items:center; gap:10px; border:1px solid var(--border); border-radius:var(--r-sm); padding:6px 10px; height:34px; margin-top:14px; }
+.rsi-label-group { display:flex; align-items:baseline; gap:6px; flex-shrink:0; }
+.rsi-label-lbl { font-family:var(--mono); font-size:8px; letter-spacing:1px; text-transform:uppercase; color:var(--ink3); }
+.rsi-label-val { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--ink2); transition:color 0.35s; }
 .rsi-label-val.oversold { color:var(--green); }
 .rsi-label-val.overbought { color:var(--rose); }
-.rsi-track-wrap { flex:1; position:relative; height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:visible; }
-.rsi-track-fill { position:absolute; left:0; top:0; bottom:0; border-radius:3px; width:50%; transition:width 0.5s,background 0.4s; background:var(--cyan); }
-.rsi-track-wrap::before,.rsi-track-wrap::after { content:''; position:absolute; top:-3px; bottom:-3px; width:1.5px; background:rgba(255,255,255,0.14); border-radius:1px; }
+.rsi-track-wrap { flex:1; position:relative; height:4px; background:rgba(255,255,255,0.05); border-radius:2px; }
+.rsi-track-fill { position:absolute; left:0; top:0; bottom:0; border-radius:2px; width:50%; transition:width 0.5s,background 0.4s; background:var(--cyan); }
+.rsi-track-wrap::before,.rsi-track-wrap::after { content:''; position:absolute; top:-2px; bottom:-2px; width:1.5px; background:rgba(255,255,255,0.14); }
 .rsi-track-wrap::before { left:35%; }
 .rsi-track-wrap::after  { left:65%; }
-.bw-badge { font-family:var(--mono); font-size:9px; letter-spacing:1px; padding:3px 9px; border-radius:8px; border:1px solid var(--border); color:var(--ink3); background:rgba(255,255,255,0.03); white-space:nowrap; flex-shrink:0; transition:color 0.3s,border-color 0.3s,background 0.3s; }
+.bw-badge { font-family:var(--mono); font-size:8.5px; letter-spacing:0.5px; padding:2px 6px; border-radius:6px; border:1px solid var(--border); color:var(--ink3); background:rgba(255,255,255,0.03); white-space:nowrap; flex-shrink:0; transition:all 0.3s; }
 .bw-badge.squeeze { color:var(--amber); border-color:rgba(251,191,36,0.35); background:rgba(251,191,36,0.08); }
 
-#portfolio { grid-column:3; grid-row:2; padding:22px 20px; display:flex; flex-direction:column; justify-content:space-between; }
-.port-lbl { font-family:var(--mono); font-size:8.5px; letter-spacing:3px; text-transform:uppercase; color:var(--ink3); }
-.port-usd { font-family:var(--serif); font-size:36px; font-weight:300; letter-spacing:-0.5px; color:var(--ink); line-height:1; margin-top:10px; }
-.port-divider { height:1px; background:var(--border); margin:10px 0; }
-.port-holdings { display:flex; align-items:baseline; gap:5px; }
-.port-h-amt { font-family:var(--mono); font-size:15px; color:var(--cyan); }
-.port-h-sym { font-size:9px; font-weight:600; letter-spacing:2px; color:var(--ink3); }
-.port-entry-row { display:flex; align-items:center; justify-content:space-between; margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
-.port-entry-lbl { font-family:var(--mono); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink3); }
-.port-entry-val { font-family:var(--mono); font-size:11px; color:var(--amber); transition:color 0.3s; }
+/* ── PORTFOLIO VALUATION ──────────────────────────────────────────────────── */
+#portfolio { grid-column:3; grid-row:2; padding:18px 16px; display:flex; flex-direction:column; justify-content:space-between; }
+.port-lbl { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); }
+.port-usd { font-family:var(--serif); font-size:28px; font-weight:300; letter-spacing:-0.5px; color:var(--ink); line-height:1.1; margin-top:4px; }
+.total-pnl-badge { display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:8.5px; font-weight:bold; padding:2px 8px; border-radius:10px; margin-top:5px; border:1px solid transparent; }
+.total-pnl-badge.positive { background:rgba(52,211,153,0.08); border-color:rgba(52,211,153,0.2); color:var(--green); }
+.total-pnl-badge.negative { background:rgba(251,113,133,0.08); border-color:rgba(251,113,133,0.2); color:var(--rose); }
+.port-divider { height:1px; background:var(--border); margin:8px 0; }
+.port-breakdown { display:flex; flex-direction:column; gap:6px; }
+.port-breakdown-row { display:flex; justify-content:space-between; align-items:center; }
+.port-lbl-sm { font-family:var(--mono); font-size:8px; letter-spacing:1px; text-transform:uppercase; color:var(--ink3); }
+.port-val-sm { font-family:var(--mono); font-size:11px; color:var(--ink2); }
+.port-val-sym { font-family:var(--mono); font-size:8px; color:var(--ink3); margin-left:2px; }
+.port-holdings-val { display:flex; align-items:center; }
 
-#stats-panel { grid-column:3; grid-row:3; padding:18px 20px; display:flex; flex-direction:column; justify-content:space-between; }
-.stat-item { display:flex; flex-direction:column; gap:2px; padding-bottom:9px; border-bottom:1px solid var(--border); }
-.stat-item:last-child { border-bottom:none; padding-bottom:0; }
-.stat-lbl { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); }
-.stat-val { font-family:var(--mono); font-size:13px; color:var(--ink2); }
-.stat-sub-row { display:flex; gap:10px; margin-top:3px; }
-.stat-sub { display:flex; align-items:center; gap:4px; }
-.stat-sub-lbl { font-family:var(--mono); font-size:8px; letter-spacing:1px; text-transform:uppercase; color:var(--ink3); }
-.stat-sub-val { font-family:var(--mono); font-size:11px; }
-.stat-sub-val.buy-color  { color:var(--green); }
-.stat-sub-val.sell-color { color:var(--rose);  }
-.stat-sub-val.stop-color { color:var(--amber); }
+/* ── STATS & AI NEURAL CARD ───────────────────────────────────────────────── */
+#stats-panel { grid-column:3; grid-row:3; padding:16px 16px; display:flex; flex-direction:column; overflow-y:auto; }
+#stats-panel::-webkit-scrollbar { width:3px; }
+#stats-panel::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+.stat-section-lbl { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); margin-bottom:8px; display:block; }
+.stats-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; }
+.stat-mini { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:5px 8px; display:flex; flex-direction:column; gap:2px; }
+.stat-lbl-sm { font-family:var(--mono); font-size:7px; letter-spacing:0.5px; text-transform:uppercase; color:var(--ink3); }
+.stat-val-sm { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--ink2); }
 
+.ai-brain-content { display:flex; flex-direction:column; gap:6px; }
+.ai-forecast-row { display:flex; justify-content:space-between; align-items:center; }
+.ai-forecast-item { display:flex; flex-direction:column; gap:1px; }
+.ai-forecast-val { font-size:12px; font-weight:700; letter-spacing:0.5px; }
+.ai-forecast-val.bullish { color:var(--green); }
+.ai-forecast-val.bearish { color:var(--rose); }
+.ai-forecast-val.neutral { color:var(--cyan); }
+.ai-acc-val { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--violet); }
+.ai-pred-bar-wrap { background:rgba(0,0,0,0.22); border:1px solid var(--border); border-radius:6px; padding:4px 6px; display:flex; justify-content:space-between; align-items:center; }
+.ai-pred-lbl { font-family:var(--mono); font-size:8px; color:var(--ink2); }
+.ai-pred-lbl span { font-weight:bold; }
+
+.nn-viz-wrap { background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.nn-norms-grid { display:flex; gap:4px; flex-wrap: wrap; }
+.nn-norm-chip {
+  font-family:var(--mono); font-size:7.5px; color:var(--ink2);
+  background:rgba(255,255,255,0.03); border:1px solid var(--border);
+  border-radius:6px; padding:2px 6px; display:flex; flex-direction:column; align-items:center; gap:1px;
+  flex:1; min-width:40px; text-align:center;
+}
+.nn-norm-chip .norm-lbl { font-size:6px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink3); }
+.nn-norm-chip .norm-val { font-weight:600; color:var(--cyan); font-size:9px; }
+
+/* ── ACTIVITY LOG ─────────────────────────────────────────────────────────── */
 #log-panel { grid-column:1/-1; grid-row:4; display:flex; flex-direction:column; overflow:hidden; }
 .log-bar { padding:10px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; }
 .log-bar-lbl { font-family:var(--mono); font-size:8.5px; letter-spacing:3px; text-transform:uppercase; color:var(--ink3); }
@@ -325,12 +376,61 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); font
     <div class="field">
       <label class="field-lbl">Trade Amount ($)</label>
       <input class="field-input" type="number" id="in-trade" value="500" min="1"/>
-      <span class="field-hint">engine uses 20% of balance / trade</span>
+      <span class="field-hint" id="trade-hint">engine uses advanced parameters</span>
     </div>
     <div class="field">
       <label class="field-lbl">Starting Wallet ($)</label>
       <input class="field-input" type="number" id="in-wallet" value="10000" min="0"/>
     </div>
+
+    <!-- Advanced Settings Dropdown -->
+    <details class="advanced-settings">
+      <summary class="adv-summary">
+        <span>Advanced Config</span>
+        <svg class="adv-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <div class="adv-fields">
+        <div class="field">
+          <label class="field-lbl">Position Mode</label>
+          <select class="field-input" id="in-pos-mode">
+            <option value="percent" selected>Percent Risk</option>
+            <option value="fixed">Fixed USD</option>
+          </select>
+        </div>
+        <div class="field pct-field">
+          <label class="field-lbl">Risk Per Trade (%)</label>
+          <input class="field-input" type="number" id="in-risk-pct" value="20" min="1" max="100"/>
+        </div>
+        <div class="field">
+          <label class="field-lbl">Stop Loss (%)</label>
+          <input class="field-input" type="number" id="in-stop-loss" value="7.0" min="0.5" step="0.5"/>
+        </div>
+        <div class="field">
+          <label class="field-lbl">AI Learning Rate</label>
+          <input class="field-input" type="number" id="in-lr" value="0.01" step="0.001" min="0.0001"/>
+        </div>
+        <div class="field">
+          <label class="field-lbl">BB Window</label>
+          <input class="field-input" type="number" id="in-bb-window" value="20" min="5"/>
+        </div>
+        <div class="field">
+          <label class="field-lbl">BB Std Dev</label>
+          <input class="field-input" type="number" id="in-bb-stddev" value="2.0" step="0.1" min="0.5"/>
+        </div>
+        <div class="field">
+          <label class="field-lbl">RSI Period</label>
+          <input class="field-input" type="number" id="in-rsi-period" value="14" min="5"/>
+        </div>
+        <div class="field">
+          <label class="field-lbl">RSI Bounds (O/B)</label>
+          <div style="display: flex; gap: 6px;">
+            <input class="field-input" type="number" id="in-rsi-oversold" value="35" min="10" max="50" style="flex: 1; text-align: center;" title="Oversold (Buy threshold)"/>
+            <input class="field-input" type="number" id="in-rsi-overbought" value="65" min="50" max="90" style="flex: 1; text-align: center;" title="Overbought (Sell threshold)"/>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <div class="btn-stack">
       <button class="btn btn-start" id="btn-start">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -343,96 +443,140 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); font
     </div>
   </div>
 
-  <div id="price-panel" class="panel">
-    <div class="price-top">
-      <span class="price-sym" id="sym-label">BTC / USD</span>
-      <div class="live-indicator">
-        <span class="live-dot-wrap" id="live-dot"></span>
-        <span id="live-txt">offline</span>
+  <!-- Unified Market Terminal -->
+  <div id="market-terminal" class="panel">
+    <div class="terminal-header">
+      <div class="header-left">
+        <span class="price-sym" id="sym-label">BTC / USD</span>
+        <div class="live-indicator">
+          <span class="live-dot-wrap" id="live-dot"></span>
+          <span id="live-txt">offline</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="price-val">$0.00</div>
       </div>
     </div>
-    <div id="price-val">$0.00</div>
+
+    <!-- Canvas Chart Container -->
+    <div class="chart-container">
+      <canvas id="price-chart"></canvas>
+      <div id="chart-tooltip" class="chart-tooltip" style="opacity: 0;"></div>
+    </div>
+
+    <!-- Terminal Footer (SMA, Bands needle and RSI slider side-by-side) -->
+    <div class="terminal-footer">
+      <div>
+        <div class="footer-lbl">Bollinger Bands <span id="sma-main" class="bb-sma">SMA —</span></div>
+        <div class="band-vis">
+          <div class="band-track"></div>
+          <div class="band-zone" id="band-zone" style="left:5%;width:90%"></div>
+          <div class="band-needle" id="band-needle" style="left:50%"></div>
+        </div>
+        <div class="band-end-labels">
+          <span class="band-lbl lower" id="lower-lbl">$—</span>
+          <span class="band-lbl upper" id="upper-lbl">$—</span>
+        </div>
+      </div>
+      <div>
+        <div class="rsi-row">
+          <div class="rsi-label-group">
+            <span class="rsi-label-lbl">RSI</span>
+            <span class="rsi-label-val" id="rsi-val">—</span>
+          </div>
+          <div class="rsi-track-wrap">
+            <div class="rsi-track-fill" id="rsi-fill" style="width:50%"></div>
+          </div>
+          <div class="bw-badge" id="bw-badge">BW —</div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div id="bb-panel" class="panel">
-    <div class="bb-header">
-      <span class="bb-title">Bollinger Bands · RSI(14)</span>
-      <span class="bb-sma" id="sma-main">SMA —</span>
-    </div>
-    <div class="band-vis">
-      <div class="band-track"></div>
-      <div class="band-zone" id="band-zone" style="left:5%;width:90%"></div>
-      <div class="band-needle" id="band-needle" style="left:50%"></div>
-    </div>
-    <div class="band-end-labels">
-      <span class="band-lbl lower" id="lower-lbl">$—</span>
-      <span class="band-lbl upper" id="upper-lbl">$—</span>
-    </div>
-    <div class="bb-stats-row">
-      <div class="bb-stat">
-        <div class="bb-stat-lbl">Lower</div>
-        <div class="bb-stat-val" id="lower-val" style="color:var(--green)">—</div>
-      </div>
-      <div class="bb-stat">
-        <div class="bb-stat-lbl">SMA</div>
-        <div class="bb-stat-val" id="sma-val" style="color:var(--cyan)">—</div>
-      </div>
-      <div class="bb-stat">
-        <div class="bb-stat-lbl">Upper</div>
-        <div class="bb-stat-val" id="upper-val" style="color:var(--rose)">—</div>
-      </div>
-    </div>
-    <div class="rsi-row">
-      <div class="rsi-label-group">
-        <span class="rsi-label-lbl">RSI</span>
-        <span class="rsi-label-val" id="rsi-val">—</span>
-      </div>
-      <div class="rsi-track-wrap">
-        <div class="rsi-track-fill" id="rsi-fill" style="width:50%"></div>
-      </div>
-      <div class="bw-badge" id="bw-badge">BW —</div>
-    </div>
-  </div>
-
+  <!-- Portfolio Valuation Card -->
   <div id="portfolio" class="panel">
-    <div class="port-lbl">Liquidity</div>
-    <div class="port-usd" id="usd-val">$0.00</div>
-    <div class="port-divider"></div>
-    <div class="port-holdings">
-      <span class="port-h-amt" id="crypto-val">0.000000</span>
-      <span class="port-h-sym" id="crypto-sym">UNITS</span>
+    <div>
+      <span class="port-lbl">Net Valuation</span>
+      <div class="port-usd" id="net-worth-val">$10,000.00</div>
+      <div id="total-pnl-wrap" class="total-pnl-badge positive" style="display: none;">
+        <span id="total-pnl-pct">+0.00%</span>
+        <span id="total-pnl-usd">($0.00)</span>
+      </div>
     </div>
-    <div class="port-entry-row">
-      <span class="port-entry-lbl">Avg Entry</span>
-      <span class="port-entry-val" id="avg-entry-val">—</span>
+    
+    <div class="port-divider"></div>
+    
+    <div class="port-breakdown">
+      <div class="port-breakdown-row">
+        <span class="port-lbl-sm">Available Cash</span>
+        <span class="port-val-sm" id="usd-val">$10,000.00</span>
+      </div>
+      <div class="port-breakdown-row">
+        <span class="port-lbl-sm">Holdings</span>
+        <div class="port-holdings-val">
+          <span class="port-val-sm" id="crypto-val">0.000000</span>
+          <span class="port-val-sym" id="crypto-sym">UNITS</span>
+        </div>
+      </div>
+      <div class="port-breakdown-row" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--border);">
+        <span class="port-lbl-sm">Avg Entry</span>
+        <span class="port-val-sm" id="avg-entry-val">—</span>
+      </div>
     </div>
   </div>
 
+  <!-- Stats & AI Brain Card -->
   <div id="stats-panel" class="panel">
-    <div class="stat-item">
-      <span class="stat-lbl">Symbol</span>
-      <span class="stat-val" id="stat-sym">—</span>
+    <div class="stat-section-lbl">Performance</div>
+    <div class="stats-grid">
+      <div class="stat-mini">
+        <span class="stat-lbl-sm">Trades</span>
+        <span class="stat-val-sm" id="stat-trades">0</span>
+      </div>
+      <div class="stat-mini">
+        <span class="stat-lbl-sm">Buys</span>
+        <span class="stat-val-sm buy-color" id="stat-buys">0</span>
+      </div>
+      <div class="stat-mini">
+        <span class="stat-lbl-sm">Sells</span>
+        <span class="stat-val-sm sell-color" id="stat-sells">0</span>
+      </div>
+      <div class="stat-mini">
+        <span class="stat-lbl-sm">Stop Loss</span>
+        <span class="stat-val-sm stop-color" id="stat-stops">0</span>
+      </div>
     </div>
-    <div class="stat-item">
-      <span class="stat-lbl">Interval</span>
-      <span class="stat-val" id="stat-interval">—</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-lbl">Trades</span>
-      <span class="stat-val" id="stat-trades">0</span>
-      <div class="stat-sub-row">
-        <div class="stat-sub">
-          <span class="stat-sub-lbl">B</span>
-          <span class="stat-sub-val buy-color" id="stat-buys">0</span>
+    
+    <div class="port-divider" style="margin: 10px 0 8px 0;"></div>
+    
+    <div class="stat-section-lbl">Neural Network Engine</div>
+    <div class="ai-brain-content">
+      <div class="ai-forecast-row">
+        <div class="ai-forecast-item">
+          <span class="stat-lbl-sm">Forecast</span>
+          <span class="ai-forecast-val neutral" id="ai-verdict">Neutral</span>
         </div>
-        <div class="stat-sub">
-          <span class="stat-sub-lbl">S</span>
-          <span class="stat-sub-val sell-color" id="stat-sells">0</span>
+        <div class="ai-forecast-item" style="text-align: center;">
+          <span class="stat-lbl-sm">Train Loss</span>
+          <span class="ai-acc-val" id="nn-train-loss" style="color: var(--amber);">0.000</span>
         </div>
-        <div class="stat-sub">
-          <span class="stat-sub-lbl">SL</span>
-          <span class="stat-sub-val stop-color" id="stat-stops">0</span>
+        <div class="ai-forecast-item" style="text-align: right;">
+          <span class="stat-lbl-sm">Accuracy</span>
+          <span class="ai-acc-val" id="ai-accuracy">0.0%</span>
         </div>
+      </div>
+      <div class="ai-pred-bar-wrap">
+        <span class="ai-pred-lbl">NN Output: <span id="ai-prediction">+0.0000</span></span>
+        <span class="nn-arch-lbl" id="nn-arch-lbl" style="font-family:var(--mono); font-size:7px; color:var(--ink3);">[8→16→8→4→1]</span>
+      </div>
+      
+      <div class="nn-viz-wrap">
+        <canvas id="nn-canvas" style="width:100%; height:130px; display:block; border-radius:6px;"></canvas>
+      </div>
+
+      <div class="nn-layer-norms-wrap" style="margin-top: 4px;">
+        <span class="stat-lbl-sm" style="margin-bottom: 4px; display: block;">Layer Weight Norms</span>
+        <div id="nn-layer-norms" class="nn-norms-grid"></div>
       </div>
     </div>
   </div>

@@ -208,3 +208,4 @@ __marimo__/
 config.json
 /node_modules
 /out
+trading_data.json
