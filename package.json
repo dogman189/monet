@@ -22,20 +22,45 @@
       "renderer.js"
     ],
     "win": {
-      "target": { "target": "portable", "arch": ["x64"] },
+      "target": {
+        "target": "portable",
+        "arch": [
+          "arm64"
+        ]
+      },
       "extraResources": [
-        { "from": "dist/backend.exe", "to": "backend.exe" }
+        {
+          "from": "dist/backend.exe",
+          "to": "backend.exe"
+        }
       ]
     },
     "linux": {
-      "target": { "target": "AppImage", "arch": ["x64"] },
+      "target": {
+        "target": "AppImage",
+        "arch": [
+          "arm64"
+        ]
+      },
       "extraResources": [
-        { "from": "dist/backend", "to": "backend" }
+        {
+          "from": "dist/backend",
+          "to": "backend"
+        }
       ]
     },
     "mac": {
+      "target": {
+        "target": "default",
+        "arch": [
+          "arm64"
+        ]
+      },
       "extraResources": [
-        { "from": "dist/backend", "to": "backend" }
+        {
+          "from": "dist/backend",
+          "to": "backend"
+        }
       ]
     }
   }
