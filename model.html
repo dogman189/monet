@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Monét — AI Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Syne+Mono&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+
+:root {
+  --cyan:      #06b6d4;
+  --cyan-glow: rgba(6, 182, 212, 0.15);
+  --green:     #10b981;
+  --green-glow: rgba(16, 185, 129, 0.15);
+  --rose:      #f43f5e;
+  --rose-glow: rgba(244, 63, 94, 0.15);
+  --violet:    #8b5cf6;
+  --violet-glow: rgba(139, 92, 246, 0.15);
+  --amber:     #f59e0b;
+  --amber-glow: rgba(245, 158, 11, 0.15);
+  
+  --bg:        #030712;
+  --s1:        rgba(17, 24, 39, 0.7);
+  --s2:        rgba(17, 24, 39, 0.45);
+  --s3:        rgba(10, 15, 30, 0.8);
+  --border:    rgba(255, 255, 255, 0.06);
+  --border2:   rgba(255, 255, 255, 0.12);
+  --ink:       #f9fafb;
+  --ink2:      #e5e7eb;
+  --ink3:      #9ca3af;
+  --ink4:      #4b5563;
+  --sans:      'Syne', sans-serif;
+  --mono:      'Syne Mono', monospace;
+  --serif:     'Cormorant Garamond', serif;
+  --r:         16px;
+  --r-sm:      10px;
+  --glow:      0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(--sans); color:var(--ink); -webkit-font-smoothing:antialiased; }
+
+/* ── BACKGROUND ORBS ─────────────────────────────────────────────────────── */
+#orbs { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.orb { position:absolute; border-radius:50%; filter:blur(120px); mix-blend-mode:screen; will-change:transform; opacity:0.8; }
+.orb-a { width:650px;height:650px;background:radial-gradient(circle,rgba(6,182,212,0.35) 0%,transparent 70%);top:-150px;left:-100px;animation:oa 25s ease-in-out infinite; }
+.orb-b { width:550px;height:550px;background:radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 70%);bottom:-80px;right:-80px;animation:ob 28s ease-in-out infinite; }
+.orb-c { width:420px;height:420px;background:radial-gradient(circle,rgba(16,185,129,0.2) 0%,transparent 70%);top:35%;left:40%;animation:oc 22s ease-in-out infinite; }
+@keyframes oa { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,70px)} }
+@keyframes ob { 0%,100%{transform:translate(0,0)} 40%{transform:translate(-60px,-50px)} 70%{transform:translate(30px,20px)} }
+@keyframes oc { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,40px) scale(1.1)} }
+#orbs::after { content:''; position:absolute;inset:0; background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px); background-size:48px 48px; }
+
+/* ── LAYOUT ──────────────────────────────────────────────────────────────── */
+#app { position:relative; z-index:10; max-width:1400px; margin:0 auto; padding:24px 20px 48px; }
+
+/* ── TOPBAR ──────────────────────────────────────────────────────────────── */
+#topbar {
+  display:flex; align-items:center; gap:16px; margin-bottom:32px;
+  padding:12px 20px;
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r); backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  position:relative; overflow:hidden;
+  -webkit-app-region: drag;
+}
+#topbar::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
+.wordmark { font-family:var(--serif); font-size:26px; font-weight:300; letter-spacing:0.06em; color:var(--ink); }
+.algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
+#topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region: no-drag; }
+.nav-link:hover { color: var(--ink) !important; }
+
+/* live badge */
+#live-badge { display:flex; align-items:center; gap:7px; padding:6px 14px; border-radius:30px; border:1px solid rgba(16,185,129,0.35); background:var(--green-glow); font-family:var(--mono); font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--green); }
+.l-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 10px var(--green); animation:sdot 2s ease-in-out infinite; }
+@keyframes sdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.7)} }
+
+/* last updated */
+#last-update { font-family:var(--mono); font-size:9px; color:var(--ink4); letter-spacing:0.5px; }
+
+/* ── STATS STRIP ─────────────────────────────────────────────────────────── */
+#stats-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+.stat-card {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r); padding:18px 20px;
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  position:relative; overflow:hidden;
+  transition:border-color 0.3s,box-shadow 0.3s,transform 0.2s;
+}
+.stat-card::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
+.stat-card:hover { border-color:var(--border2); transform:translateY(-2px); box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+.stat-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--ink3); margin-bottom:8px; }
+.stat-value { font-size:22px; font-weight:700; color:var(--ink); }
+.stat-sub { font-family:var(--mono); font-size:10px; color:var(--ink3); margin-top:4px; }
+
+/* ── MAIN CONTENT ─────────────────────────────────────────────────────────── */
+.panel { 
+  background:var(--s1); 
+  border:1px solid var(--border); 
+  border-radius:var(--r); 
+  position:relative; 
+  overflow:hidden; 
+  box-shadow: var(--glow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 24px;
+}
+.panel::after { content:''; position:absolute; top:0; left:12px; right:12px; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); z-index:2; }
+
+.model-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.viz-container {
+  background:rgba(0,0,0,0.15); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding: 16px;
+  min-height: 300px;
+}
+
+h2 {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+
+h3 {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--ink2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.layer-norms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.norm-item {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+}
+
+.norm-val {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--cyan);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.norm-lbl {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feature-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.feature-lbl {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink2);
+}
+
+.feature-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--amber);
+  font-weight: bold;
+}
+
+</style>
+</head>
+<body>
+
+<div id="orbs">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+</div>
+
+<div id="app">
+
+  <!-- ── TOPBAR ────────────────────────────────────────────────────────────── -->
+  <header id="topbar">
+    <span class="wordmark">Monét</span>
+    <span class="algo-chip">AI Engine</span>
+    <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
+      <a href="index.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Terminal</a>
+      <a href="crypto-prices.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Crypto Prices</a>
+      <a href="model.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Model</a>
+    </div>
+    <div id="topbar-right">
+      <div id="live-badge">
+        <div class="l-dot"></div>
+        <span>Live</span>
+      </div>
+      <div id="last-update">–</div>
+    </div>
+  </header>
+
+  <!-- ── STATS STRIP ────────────────────────────────────────────────────────── -->
+  <section id="stats-strip">
+    <div class="stat-card">
+      <div class="stat-label">Model Architecture</div>
+      <div class="stat-value" id="stat-arch" style="font-family: var(--mono); font-size: 18px;">[8→16→8→4→1]</div>
+      <div class="stat-sub">Dense Neural Network</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Training Loss</div>
+      <div class="stat-value" id="stat-loss" style="color: var(--amber);">0.0000</div>
+      <div class="stat-sub">Online SGD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Directional Accuracy</div>
+      <div class="stat-value" id="stat-accuracy" style="color: var(--cyan);">0.00%</div>
+      <div class="stat-sub">Lifetime accuracy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Latest Prediction</div>
+      <div class="stat-value" id="stat-prediction">0.0000</div>
+      <div class="stat-sub" id="stat-verdict">Neutral</div>
+    </div>
+  </section>
+
+  <!-- ── MAIN PANELS ────────────────────────────────────────────────────────── -->
+  <div class="model-grid">
+    <div class="panel">
+      <h2>Network Topology</h2>
+      <div class="viz-container">
+        <canvas id="big-nn-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+      </div>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+      <div class="panel">
+        <h3>Feature Activations (Input Layer)</h3>
+        <div class="features-list" id="features-list">
+          <!-- Populated by JS -->
+          <div style="color: var(--ink4); font-family: var(--mono); font-size: 12px;">Waiting for data...</div>
+        </div>
+      </div>
+      
+      <div class="panel">
+        <h3>Layer Weight Norms</h3>
+        <div class="layer-norms-grid" id="layer-norms">
+          <!-- Populated by JS -->
+          <div style="color: var(--ink4); font-family: var(--mono); font-size: 12px; grid-column: 1/-1;">Waiting for data...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BASE = (window.APP_CONFIG && window.APP_CONFIG.backendUrl) || 'http://127.0.0.1:5678';
+let pollInterval = null;
+
+const formatDec = (val, dec=4) => {
+  if(val === null || val === undefined) return "0.0000";
+  return val.toFixed(dec);
+};
+
+const featureNames = [
+  "RSI Normalized",
+  "BB Position",
+  "Bandwidth Proxy",
+  "5-Tick Momentum",
+  "Volatility StdDev",
+  "Price/SMA Ratio",
+  "Consecutive Dir",
+  "Mean Reversion"
+];
+
+function drawNetwork(canvas, activations) {
+  if (!activations || activations.length === 0) return;
+  const ctx = canvas.getContext('2d');
+  
+  // Set real canvas dimensions to match CSS display dimensions for sharp rendering
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  
+  const w = rect.width;
+  const h = rect.height;
+  
+  ctx.clearRect(0, 0, w, h);
+  
+  const layers = activations.length;
+  const maxNodes = Math.max(...activations.map(l => l.length));
+  
+  const pX = 40;
+  const pY = 40;
+  const effW = w - pX*2;
+  const effH = h - pY*2;
+  
+  // Draw connections first
+  ctx.lineWidth = 1;
+  for(let i=0; i<layers-1; i++){
+    const currLayer = activations[i];
+    const nextLayer = activations[i+1];
+    
+    const x1 = pX + (i/(layers-1)) * effW;
+    const x2 = pX + ((i+1)/(layers-1)) * effW;
+    
+    for(let j=0; j<currLayer.length; j++){
+      const y1 = pY + (j/Math.max(1, currLayer.length-1)) * effH;
+      // if layer has only 1 node, center it
+      const finalY1 = currLayer.length === 1 ? h/2 : y1;
+      
+      for(let k=0; k<nextLayer.length; k++){
+        const y2 = pY + (k/Math.max(1, nextLayer.length-1)) * effH;
+        const finalY2 = nextLayer.length === 1 ? h/2 : y2;
+        
+        // Intensity of line based on activation of source node
+        const act = Math.abs(currLayer[j]);
+        ctx.strokeStyle = \`rgba(6, 182, 212, \${Math.min(1.0, act * 0.5 + 0.05)})\`;
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, finalY1);
+        ctx.lineTo(x2, finalY2);
+        ctx.stroke();
+      }
+    }
+  }
+  
+  // Draw nodes
+  for(let i=0; i<layers; i++){
+    const layer = activations[i];
+    const x = pX + (i/(layers-1)) * effW;
+    
+    for(let j=0; j<layer.length; j++){
+      const y = pY + (j/Math.max(1, layer.length-1)) * effH;
+      const finalY = layer.length === 1 ? h/2 : y;
+      
+      const val = layer[j];
+      const isPos = val > 0;
+      
+      // Node background
+      ctx.beginPath();
+      ctx.arc(x, finalY, 6, 0, Math.PI*2);
+      ctx.fillStyle = '#0a0f1e';
+      ctx.fill();
+      
+      // Node fill
+      ctx.beginPath();
+      ctx.arc(x, finalY, 5, 0, Math.PI*2);
+      ctx.fillStyle = isPos ? \`rgba(16, 185, 129, \${Math.min(1, Math.abs(val)*2)})\` : \`rgba(244, 63, 94, \${Math.min(1, Math.abs(val)*2)})\`;
+      ctx.fill();
+      
+      // Node border
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#fff';
+      ctx.stroke();
+    }
+  }
+}
+
+async function updateData() {
+  try {
+    const res = await fetch(\`\${BASE}/api/status\`);
+    const data = await res.json();
+    
+    // Update basic stats
+    if(data.nn_architecture) document.getElementById('stat-arch').textContent = \`[\${data.nn_architecture.join('→')}]\`;
+    document.getElementById('stat-loss').textContent = formatDec(data.nn_train_loss, 5);
+    document.getElementById('stat-accuracy').textContent = formatDec(data.ai_accuracy, 2) + '%';
+    
+    const pred = data.ai_prediction || 0;
+    const predEl = document.getElementById('stat-prediction');
+    predEl.textContent = (pred > 0 ? '+' : '') + formatDec(pred, 4);
+    predEl.style.color = pred > 0 ? 'var(--green)' : pred < 0 ? 'var(--rose)' : 'var(--ink)';
+    
+    const verdictEl = document.getElementById('stat-verdict');
+    if (pred > 0.3) { verdictEl.textContent = 'Strong Buy'; verdictEl.style.color = 'var(--green)'; }
+    else if (pred > 0.05) { verdictEl.textContent = 'Buy'; verdictEl.style.color = 'var(--green)'; }
+    else if (pred < -0.3) { verdictEl.textContent = 'Strong Sell'; verdictEl.style.color = 'var(--rose)'; }
+    else if (pred < -0.05) { verdictEl.textContent = 'Sell'; verdictEl.style.color = 'var(--rose)'; }
+    else { verdictEl.textContent = 'Neutral'; verdictEl.style.color = 'var(--ink)'; }
+    
+    // Update layer norms
+    if (data.nn_layer_norms && data.nn_layer_norms.length > 0) {
+      let html = '';
+      data.nn_layer_norms.forEach((norm, idx) => {
+        html += \`<div class="norm-item">
+          <span class="norm-val">\${formatDec(norm, 4)}</span>
+          <span class="norm-lbl">L\${idx+1} Weights</span>
+        </div>\`;
+      });
+      document.getElementById('layer-norms').innerHTML = html;
+    }
+    
+    // Feature Activations (input layer)
+    if (data.nn_activations && data.nn_activations.length > 0) {
+      const inputs = data.nn_activations[0];
+      let html = '';
+      inputs.forEach((val, idx) => {
+        const name = featureNames[idx] || \`Feature \${idx}\`;
+        const color = val > 0 ? 'var(--green)' : val < 0 ? 'var(--rose)' : 'var(--ink)';
+        html += \`<div class="feature-item">
+          <span class="feature-lbl">\${name}</span>
+          <span class="feature-val" style="color: \${color}">\${formatDec(val, 4)}</span>
+        </div>\`;
+      });
+      document.getElementById('features-list').innerHTML = html;
+    }
+    
+    // Draw Network
+    if (data.nn_activations) {
+      drawNetwork(document.getElementById('big-nn-canvas'), data.nn_activations);
+    }
+    
+    const now = new Date();
+    document.getElementById('last-update').textContent = 'Updated ' + now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  } catch (err) {
+    console.error("Failed to fetch model status", err);
+  }
+}
+
+// Polling for live AI model updates
+function startPolling() {
+  updateData();
+  pollInterval = setInterval(updateData, 2000);
+}
+
+// Ensure canvas resizes properly on window resize
+window.addEventListener('resize', () => {
+  // Next data update will trigger redraw with new size
+  updateData();
+});
+
+document.addEventListener('DOMContentLoaded', startPolling);
+</script>
+
+</body>
+</html>

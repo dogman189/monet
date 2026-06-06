@@ -838,6 +838,40 @@ def stream_logs():
 def get_config():
     return jsonify({"api_key": state.get("api_key", "")})
 
+@app.route("/api/cmc/global", methods=["GET"])
+def get_cmc_global():
+    api_key = state.get("api_key", "").strip()
+    if not api_key:
+        return jsonify({"error": "API key required"}), 400
+
+    url = "https://pro-api.coinmarketcap.com/v1/global-metrics/quotes/latest"
+    req = urllib.request.Request(url, headers={"X-CMC_PRO_API_KEY": api_key})
+    context = ssl.create_default_context(cafile=certifi.where())
+    try:
+        with urllib.request.urlopen(req, context=context) as response:
+            data = json.load(response)
+            return jsonify(data)
+    except Exception as e:
+        log(f"Error fetching global metrics from CMC: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/cmc/listings", methods=["GET"])
+def get_cmc_listings():
+    api_key = state.get("api_key", "").strip()
+    if not api_key:
+        return jsonify({"error": "API key required"}), 400
+
+    url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest"
+    req = urllib.request.Request(url, headers={"X-CMC_PRO_API_KEY": api_key})
+    context = ssl.create_default_context(cafile=certifi.where())
+    try:
+        with urllib.request.urlopen(req, context=context) as response:
+            data = json.load(response)
+            return jsonify(data)
+    except Exception as e:
+        log(f"Error fetching listings from CMC: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     load_config()
     log(f"System: ultraexchange engine online  |  port 5678  |  math engine v4 (Neural Network {NN_ARCHITECTURE})")

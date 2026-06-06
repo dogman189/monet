@@ -19,7 +19,9 @@
       "main.js",
       "preload.js",
       "index.html",
-      "renderer.js"
+      "renderer.js",
+      "model.html",
+      "crypto-prices.html"
     ],
     "win": {
       "target": {
