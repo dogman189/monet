@@ -21,7 +21,8 @@
       "index.html",
       "renderer.js",
       "model.html",
-      "crypto-prices.html"
+      "crypto-prices.html",
+      "settings.html"
     ],
     "win": {
       "target": {

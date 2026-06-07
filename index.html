@@ -366,6 +366,7 @@ select.field-input { -webkit-appearance:none; appearance:none; background-image:
       <a href="index.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Terminal</a>
       <a href="crypto-prices.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Crypto Prices</a>
       <a href="model.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Model</a>
+      <a href="settings.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Settings</a>
     </div>
     <div id="topbar-right">
       <div id="status-pill">
@@ -485,7 +486,15 @@ select.field-input { -webkit-appearance:none; appearance:none; background-image:
           <span id="live-txt">offline</span>
         </div>
       </div>
-      <div class="header-right">
+      <div class="header-right" style="display: flex; align-items: center; gap: 16px;">
+        <div class="chart-toggles" style="display: flex; gap: 10px; font-family: var(--mono); font-size: 8px; text-transform: uppercase; color: var(--ink3); -webkit-app-region: no-drag;">
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="checkbox" id="toggle-bb" checked style="accent-color: var(--cyan); cursor: pointer;"/> BB
+          </label>
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="checkbox" id="toggle-sma" checked style="accent-color: var(--cyan); cursor: pointer;"/> SMA
+          </label>
+        </div>
         <div id="price-val">$0.00</div>
       </div>
     </div>

@@ -373,8 +373,9 @@ def load_config():
         try:
             with open(CONFIG_FILE, "r") as f:
                 config = json.load(f)
-                if "api_key" in config:
-                    state["api_key"] = config["api_key"]
+                for k, v in config.items():
+                    if k in state:
+                        state[k] = v
         except Exception:
             log("System: Failed to load config.")
 
@@ -862,9 +863,39 @@ def stream_logs():
                 yield ": heartbeat\n\n"
     return Response(generate(), mimetype="text/event-stream")
 
-@app.route("/api/config", methods=["GET"])
-def get_config():
-    return jsonify({"api_key": state.get("api_key", "")})
+@app.route("/api/config", methods=["GET", "POST"])
+def manage_config():
+    if request.method == "POST":
+        body = request.get_json()
+        try:
+            config = {}
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, "r") as f:
+                    config = json.load(f)
+            
+            for k, v in body.items():
+                config[k] = v
+                if k in state:
+                    state[k] = v
+            
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(config, f)
+            return jsonify({"status": "saved"})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        config = {}
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r") as f:
+                    config = json.load(f)
+            except Exception:
+                pass
+        
+        for k in ["api_key", "symbol", "interval", "trade_amt", "position_mode", "buy_risk_pct", "stop_loss_pct", "take_profit_pct", "ai_learning_rate", "bb_window", "bb_stddev", "rsi_period", "rsi_oversold", "rsi_overbought"]:
+            if k not in config:
+                config[k] = state.get(k, "")
+        return jsonify(config)
 
 @app.route("/api/cmc/global", methods=["GET"])
 def get_cmc_global():

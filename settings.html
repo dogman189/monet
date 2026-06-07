@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Monét — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Syne+Mono&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+
+:root {
+  --cyan:      #06b6d4;
+  --cyan-glow: rgba(6, 182, 212, 0.15);
+  --green:     #10b981;
+  --green-glow: rgba(16, 185, 129, 0.15);
+  --rose:      #f43f5e;
+  --rose-glow: rgba(244, 63, 94, 0.15);
+  --violet:    #8b5cf6;
+  --violet-glow: rgba(139, 92, 246, 0.15);
+  --amber:     #f59e0b;
+  --amber-glow: rgba(245, 158, 11, 0.15);
+  
+  --bg:        #030712;
+  --s1:        rgba(17, 24, 39, 0.7);
+  --s2:        rgba(17, 24, 39, 0.45);
+  --s3:        rgba(10, 15, 30, 0.8);
+  --border:    rgba(255, 255, 255, 0.06);
+  --border2:   rgba(255, 255, 255, 0.12);
+  --ink:       #f9fafb;
+  --ink2:      #e5e7eb;
+  --ink3:      #9ca3af;
+  --ink4:      #4b5563;
+  --sans:      'Syne', sans-serif;
+  --mono:      'Syne Mono', monospace;
+  --serif:     'Cormorant Garamond', serif;
+  --r:         16px;
+  --r-sm:      10px;
+  --glow:      0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* ── LIGHT MODE OVERRIDES ─────────────────────────────────────────────────── */
+html.light {
+  --bg:        #f3f4f6;
+  --s1:        rgba(255, 255, 255, 0.75);
+  --s2:        rgba(255, 255, 255, 0.45);
+  --s3:        rgba(249, 250, 251, 0.85);
+  --border:    rgba(0, 0, 0, 0.08);
+  --border2:   rgba(0, 0, 0, 0.15);
+  --ink:       #111827;
+  --ink2:      #374151;
+  --ink3:      #6b7280;
+  --ink4:      #9ca3af;
+  
+  --cyan:      #0891b2;
+  --green:     #059669;
+  --rose:      #e11d48;
+  --violet:    #7c3aed;
+  --amber:     #d97706;
+  
+  --cyan-glow: rgba(8, 145, 178, 0.1);
+  --green-glow: rgba(5, 150, 105, 0.1);
+  --rose-glow: rgba(225, 29, 72, 0.1);
+  --violet-glow: rgba(124, 58, 237, 0.1);
+  --amber-glow: rgba(217, 119, 6, 0.1);
+}
+
+html.light #orbs .orb-a { background:radial-gradient(circle,rgba(8,145,178,0.12) 0%,transparent 70%); }
+html.light #orbs .orb-b { background:radial-gradient(circle,rgba(124,58,237,0.1) 0%,transparent 70%); }
+html.light #orbs .orb-c { background:radial-gradient(circle,rgba(5,150,105,0.08) 0%,transparent 70%); }
+html.light #orbs::after { background-image: linear-gradient(rgba(0,0,0,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.015) 1px, transparent 1px); }
+
+html.light .panel { background:var(--s1); border-color:var(--border); box-shadow: 0 4px 30px rgba(0,0,0,0.03), inset 0 1px 1px rgba(255,255,255,0.8); }
+html.light .panel::after { background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent); }
+
+html.light .field-input { background:rgba(255,255,255,0.8); border-color:rgba(0,0,0,0.1); color:var(--ink); }
+html.light .field-input:focus { border-color:var(--cyan); box-shadow:0 0 0 3px var(--cyan-glow); }
+
+html.light .btn-save { background:linear-gradient(135deg,var(--cyan),#2563eb); color:#fff; box-shadow:0 4px 14px var(--cyan-glow); }
+
+#theme-toggle {
+  width:32px; height:32px; border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--s2);
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition: var(--transition);
+  -webkit-app-region:no-drag;
+  flex-shrink:0;
+  color: var(--ink2);
+}
+#theme-toggle:hover { transform:rotate(12deg) scale(1.08); background:var(--s1); border-color:var(--border2); color: var(--ink); }
+#theme-toggle svg { transition:opacity 0.2s; }
+html.light #theme-toggle .icon-moon { display:none; }
+html:not(.light) #theme-toggle .icon-sun { display:none; }
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(--sans); color:var(--ink); -webkit-font-smoothing:antialiased; }
+
+#orbs { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.orb { position:absolute; border-radius:50%; filter:blur(120px); mix-blend-mode:screen; will-change:transform; opacity: 0.8; }
+.orb-a { width:650px;height:650px;background:radial-gradient(circle,rgba(6,182,212,0.35) 0%,transparent 70%);top:-150px;left:-100px;animation:oa 25s ease-in-out infinite; }
+.orb-b { width:550px;height:550px;background:radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 70%);bottom:-80px;right:-80px;animation:ob 28s ease-in-out infinite; }
+.orb-c { width:420px;height:420px;background:radial-gradient(circle,rgba(16,185,129,0.2) 0%,transparent 70%);top:35%;left:40%;animation:oc 22s ease-in-out infinite; }
+@keyframes oa { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,70px)} }
+@keyframes ob { 0%,100%{transform:translate(0,0)} 40%{transform:translate(-60px,-50px)} 70%{transform:translate(30px,20px)} }
+@keyframes oc { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,40px) scale(1.1)} }
+#orbs::after { content:''; position:absolute;inset:0; background-image: linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px); background-size:48px 48px; }
+
+#app { position:relative; z-index:10; max-width:1100px; margin:0 auto; padding:24px 20px 48px; }
+
+#topbar {
+  display:flex; align-items:center; gap:16px; margin-bottom:32px;
+  padding:12px 20px;
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r); backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  position:relative; overflow:hidden;
+  -webkit-app-region: drag;
+}
+#topbar::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
+.wordmark { font-family:var(--serif); font-size:26px; font-weight:300; letter-spacing:0.06em; color:var(--ink); }
+.algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
+#topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region: no-drag; }
+.nav-link:hover { color: var(--ink) !important; }
+
+.panel { 
+  background:var(--s1); 
+  border:1px solid var(--border); 
+  border-radius:var(--r); 
+  position:relative; 
+  overflow:hidden; 
+  box-shadow: var(--glow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 28px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.panel:hover { border-color: var(--border2); }
+.panel::after { content:''; position:absolute; top:0; left:12px; right:12px; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); z-index:2; }
+
+h2 {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 400;
+  margin-bottom: 24px;
+  color: var(--ink);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-lbl {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+.field-input {
+  width:100%; background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--ink); font-family:var(--mono); font-size:11px; outline:none; transition: var(--transition); }
+.field-input:focus { border-color:var(--cyan); box-shadow:0 0 0 3px var(--cyan-glow); }
+select.field-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='rgba(240,244,248,0.5)' stroke-width='2'%3E%3Cpath d='m2 3 3 3 3-3'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:28px; }
+
+.field-hint {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink4);
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+}
+
+.btn-row {
+  grid-column: 1/-1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.btn {
+  height: 40px; border: none; border-radius: 20px; font-family: var(--sans); font-weight: 700; font-size: 12px; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: var(--transition); padding: 0 24px; position: relative; overflow: hidden;
+}
+.btn::after { content:''; position:absolute;inset:0; background:linear-gradient(160deg,rgba(255,255,255,0.08) 0%,transparent 50%); border-radius:inherit;pointer-events:none; }
+.btn-save { background:linear-gradient(135deg,var(--cyan),#2563eb); color:#fff; box-shadow:0 4px 15px var(--cyan-glow); }
+.btn-save:hover { transform:translateY(-1px); box-shadow:0 6px 22px var(--cyan-glow); }
+
+#toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(16, 185, 129, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--glow);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  transition: opacity 0.3s, transform 0.3s;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+</style>
+</head>
+<body>
+
+<div id="orbs">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+</div>
+
+<div id="app">
+
+  <header id="topbar">
+    <span class="wordmark">Monét</span>
+    <span class="algo-chip">algo · settings</span>
+    <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
+      <a href="index.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Terminal</a>
+      <a href="crypto-prices.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Crypto Prices</a>
+      <a href="model.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Model</a>
+      <a href="settings.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Settings</a>
+    </div>
+    <div id="topbar-right">
+      <button id="theme-toggle" title="Toggle light / dark mode" aria-label="Toggle theme">
+        <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
+        </svg>
+        <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>Global Settings</h2>
+    <form id="settings-form" class="settings-grid">
+      
+      <!-- Column 1: API & Basic parameters -->
+      <div class="settings-section">
+        <div class="section-title">Credentials & Feed</div>
+        <div class="field">
+          <label class="field-lbl">CoinMarketCap Pro API Key</label>
+          <input type="password" class="field-input" id="cfg-api-key" placeholder="Enter CMC API Token"/>
+          <span class="field-hint">Required for live price tracking. Key remains local.</span>
+        </div>
+        <div class="field">
+          <label class="field-lbl">Default Target Symbol</label>
+          <input type="text" class="field-input" id="cfg-symbol" placeholder="BTC"/>
+          <span class="field-hint">Asset symbol queried from the data feed (e.g. BTC, ETH, SOL).</span>
+        </div>
+        <div class="field">
+          <label class="field-lbl">Fetch Interval (seconds)</label>
+          <input type="number" class="field-input" id="cfg-interval" min="10" placeholder="300"/>
+          <span class="field-hint">Frequency of price polling. Safe rate-limit range: 250s+.</span>
+        </div>
+
+        <div class="section-title" style="margin-top: 14px;">Risk & Trading Bounds</div>
+        <div class="field">
+          <label class="field-lbl">Position Sizing Mode</label>
+          <select class="field-input" id="cfg-pos-mode">
+            <option value="percent">Percent Risk</option>
+            <option value="fixed">Fixed USD</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-lbl">Trade Amount ($)</label>
+          <input type="number" class="field-input" id="cfg-trade-amt" min="1" placeholder="500"/>
+          <span class="field-hint">Fixed dollar size order allocation (for Fixed USD mode).</span>
+        </div>
+        <div class="field">
+          <label class="field-lbl">Risk Per Trade (%)</label>
+          <input type="number" class="field-input" id="cfg-risk-pct" min="1" max="100" placeholder="20"/>
+          <span class="field-hint">Percentage of wallet to allocate per buy (for Percent Risk mode).</span>
+        </div>
+      </div>
+
+      <!-- Column 2: Tech indicators & AI configurations -->
+      <div class="settings-section">
+        <div class="section-title">Technical Indicators</div>
+        <div class="field">
+          <label class="field-lbl">Bollinger Bands Window</label>
+          <input type="number" class="field-input" id="cfg-bb-window" min="5" placeholder="20"/>
+          <span class="field-hint">Price sample size for calculating Bollinger Bands SMA.</span>
+        </div>
+        <div class="field">
+          <label class="field-lbl">Bollinger Bands Std Dev</label>
+          <input type="number" class="field-input" id="cfg-bb-stddev" min="0.5" step="0.1" placeholder="2.0"/>
+          <span class="field-hint">Standard deviation bands multiplier (Bollinger channels bounds).</span>
+        </div>
+        <div class="field">
+          <label class="field-lbl">RSI Calculation Period</label>
+          <input type="number" class="field-input" id="cfg-rsi-period" min="5" placeholder="14"/>
+        </div>
+        <div class="field">
+          <label class="field-lbl">RSI Oversold Bound (Buy threshold)</label>
+          <input type="number" class="field-input" id="cfg-rsi-oversold" min="10" max="50" placeholder="35"/>
+        </div>
+        <div class="field">
+          <label class="field-lbl">RSI Overbought Bound (Sell threshold)</label>
+          <input type="number" class="field-input" id="cfg-rsi-overbought" min="50" max="90" placeholder="65"/>
+        </div>
+
+        <div class="section-title" style="margin-top: 14px;">Neural Network Settings</div>
+        <div class="field">
+          <label class="field-lbl">AI Learning Rate (alpha)</label>
+          <input type="number" class="field-input" id="cfg-lr" min="0.0001" step="0.0001" placeholder="0.01"/>
+          <span class="field-hint">Online gradient descent backpropagation rate.</span>
+        </div>
+        <div class="field" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+          <div>
+            <label class="field-lbl">Stop Loss (%)</label>
+            <input type="number" class="field-input" id="cfg-stop-loss" min="0.5" step="0.5" placeholder="7.0"/>
+          </div>
+          <div>
+            <label class="field-lbl">Take Profit (%)</label>
+            <input type="number" class="field-input" id="cfg-take-profit" min="0.5" step="0.5" placeholder="10.0"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action buttons row -->
+      <div class="btn-row">
+        <button type="submit" class="btn btn-save" id="btn-save-cfg">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Configuration
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<div id="toast">Settings Saved!</div>
+
+<script>
+  // ─── THEME TOGGLE ──────────────────────────────────────────────────────────
+  (function() {
+    const html = document.documentElement;
+    const btn  = document.getElementById('theme-toggle');
+    const PREF_KEY = 'monet-theme';
+
+    if (localStorage.getItem(PREF_KEY) === 'light') {
+      html.classList.add('light');
+    }
+
+    btn.addEventListener('click', () => {
+      const isLight = html.classList.toggle('light');
+      localStorage.setItem(PREF_KEY, isLight ? 'light' : 'dark');
+    });
+  })();
+
+  // ─── SETTINGS LOGIC ────────────────────────────────────────────────────────
+  const BASE = (window.APP_CONFIG && window.APP_CONFIG.backendUrl) || 'http://127.0.0.1:5678';
+  const form = document.getElementById('settings-form');
+  const toast = document.getElementById('toast');
+
+  async function loadSettings() {
+    try {
+      const res = await fetch(`${BASE}/api/config`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      // Populate input fields
+      if (data.api_key !== undefined) document.getElementById('cfg-api-key').value = data.api_key;
+      if (data.symbol !== undefined) document.getElementById('cfg-symbol').value = data.symbol;
+      if (data.interval !== undefined) document.getElementById('cfg-interval').value = data.interval;
+      if (data.trade_amt !== undefined) document.getElementById('cfg-trade-amt').value = data.trade_amt;
+      if (data.position_mode !== undefined) document.getElementById('cfg-pos-mode').value = data.position_mode;
+      if (data.buy_risk_pct !== undefined) document.getElementById('cfg-risk-pct').value = Math.round(data.buy_risk_pct * 100);
+      if (data.bb_window !== undefined) document.getElementById('cfg-bb-window').value = data.bb_window;
+      if (data.bb_stddev !== undefined) document.getElementById('cfg-bb-stddev').value = data.bb_stddev;
+      if (data.rsi_period !== undefined) document.getElementById('cfg-rsi-period').value = data.rsi_period;
+      if (data.rsi_oversold !== undefined) document.getElementById('cfg-rsi-oversold').value = data.rsi_oversold;
+      if (data.rsi_overbought !== undefined) document.getElementById('cfg-rsi-overbought').value = data.rsi_overbought;
+      if (data.ai_learning_rate !== undefined) document.getElementById('cfg-lr').value = data.ai_learning_rate;
+      if (data.stop_loss_pct !== undefined) document.getElementById('cfg-stop-loss').value = data.stop_loss_pct * 100;
+      if (data.take_profit_pct !== undefined) document.getElementById('cfg-take-profit').value = data.take_profit_pct * 100;
+
+    } catch (e) {
+      console.error("Failed to load settings from API config", e);
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      api_key:          document.getElementById('cfg-api-key').value.trim(),
+      symbol:           (document.getElementById('cfg-symbol').value.trim() || 'BTC').toUpperCase(),
+      interval:         parseInt(document.getElementById('cfg-interval').value) || 300,
+      trade_amt:        parseFloat(document.getElementById('cfg-trade-amt').value) || 500,
+      position_mode:    document.getElementById('cfg-pos-mode').value,
+      buy_risk_pct:     (parseFloat(document.getElementById('cfg-risk-pct').value) || 20) / 100,
+      bb_window:        parseInt(document.getElementById('cfg-bb-window').value) || 20,
+      bb_stddev:        parseFloat(document.getElementById('cfg-bb-stddev').value) || 2.0,
+      rsi_period:       parseInt(document.getElementById('cfg-rsi-period').value) || 14,
+      rsi_oversold:     parseInt(document.getElementById('cfg-rsi-oversold').value) || 35,
+      rsi_overbought:   parseInt(document.getElementById('cfg-rsi-overbought').value) || 65,
+      ai_learning_rate: parseFloat(document.getElementById('cfg-lr').value) || 0.01,
+      stop_loss_pct:    (parseFloat(document.getElementById('cfg-stop-loss').value) || 7) / 100,
+      take_profit_pct:  (parseFloat(document.getElementById('cfg-take-profit').value) || 10) / 100,
+    };
+
+    try {
+      const res = await fetch(`${BASE}/api/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        showToast();
+      } else {
+        alert("Failed to save configuration.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error calling config API endpoint.");
+    }
+  });
+
+  function showToast() {
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+</body>
+</html>

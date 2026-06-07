@@ -69,6 +69,8 @@ const E = {
   inRsiPeriod:    $('in-rsi-period'),
   inRsiOversold:  $('in-rsi-oversold'),
   inRsiOverbought:$('in-rsi-overbought'),
+  toggleBb:       $('toggle-bb'),
+  toggleSma:      $('toggle-sma'),
 };
 
 let logCount     = 0;
@@ -109,11 +111,17 @@ const colors = {
   }
 };
 
+function initChartToggles() {
+  if (E.toggleBb) E.toggleBb.addEventListener('change', () => drawChart(chartHistory));
+  if (E.toggleSma) E.toggleSma.addEventListener('change', () => drawChart(chartHistory));
+}
+
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 
 async function boot() {
   initPosModeToggle();
   initChartInteraction();
+  initChartToggles();
   await waitForBackend();
   await loadConfig();
   syncStatus();
@@ -571,8 +579,9 @@ function drawChart(history, guidelineIndex = -1) {
   }
 
   // 2. Plot Bollinger Bands shaded corridor
+  const showBB = E.toggleBb ? E.toggleBb.checked : true;
   const bbPoints = history.filter(pt => pt.upper != null && pt.lower != null);
-  if (bbPoints.length > 0) {
+  if (showBB && bbPoints.length > 0) {
     ctx.beginPath();
     // Trace upper bands
     history.forEach((pt, i) => {
@@ -618,23 +627,26 @@ function drawChart(history, guidelineIndex = -1) {
   }
 
   // 3. Plot SMA line
-  ctx.beginPath();
-  let firstSma = true;
-  history.forEach((pt, i) => {
-    if (pt.sma != null) {
-      if (firstSma) {
-        ctx.moveTo(getX(i), getY(pt.sma));
-        firstSma = false;
-      } else {
-        ctx.lineTo(getX(i), getY(pt.sma));
+  const showSMA = E.toggleSma ? E.toggleSma.checked : true;
+  if (showSMA) {
+    ctx.beginPath();
+    let firstSma = true;
+    history.forEach((pt, i) => {
+      if (pt.sma != null) {
+        if (firstSma) {
+          ctx.moveTo(getX(i), getY(pt.sma));
+          firstSma = false;
+        } else {
+          ctx.lineTo(getX(i), getY(pt.sma));
+        }
       }
-    }
-  });
-  ctx.strokeStyle = c.sma;
-  ctx.lineWidth = 1.25;
-  ctx.setLineDash([3, 4]);
-  ctx.stroke();
-  ctx.setLineDash([]);
+    });
+    ctx.strokeStyle = c.sma;
+    ctx.lineWidth = 1.25;
+    ctx.setLineDash([3, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   // 4. Plot Price line (glowing)
   ctx.beginPath();
