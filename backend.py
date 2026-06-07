@@ -66,6 +66,9 @@ class NeuralNetwork:
         self.lr = learning_rate
         self.weights = []
         self.biases = []
+        self.v_weights = []
+        self.v_biases = []
+        self.momentum = 0.9
         # Xavier / He init
         for i in range(len(layer_sizes) - 1):
             fan_in  = layer_sizes[i]
@@ -75,6 +78,8 @@ class NeuralNetwork:
             b = [0.0] * fan_out
             self.weights.append(w)
             self.biases.append(b)
+            self.v_weights.append([[0.0] * fan_out for _ in range(fan_in)])
+            self.v_biases.append([0.0] * fan_out)
         # Tracking
         self.predictions_made   = 0
         self.correct_directions = 0
@@ -157,7 +162,7 @@ class NeuralNetwork:
         # Gradient clipping constant
         max_grad = 1.0
 
-        # Update weights and biases
+        # Update weights and biases with momentum
         for layer_idx in range(len(self.weights)):
             layer_input = activations[layer_idx]
             layer_delta = deltas[layer_idx]
@@ -165,10 +170,12 @@ class NeuralNetwork:
                 for k in range(len(layer_input)):
                     grad = layer_delta[j] * layer_input[k]
                     grad = max(-max_grad, min(max_grad, grad))  # clip
-                    self.weights[layer_idx][k][j] += self.lr * grad
+                    self.v_weights[layer_idx][k][j] = self.momentum * self.v_weights[layer_idx][k][j] + self.lr * grad
+                    self.weights[layer_idx][k][j] += self.v_weights[layer_idx][k][j]
                 grad_b = layer_delta[j]
                 grad_b = max(-max_grad, min(max_grad, grad_b))
-                self.biases[layer_idx][j] += self.lr * grad_b
+                self.v_biases[layer_idx][j] = self.momentum * self.v_biases[layer_idx][j] + self.lr * grad_b
+                self.biases[layer_idx][j] += self.v_biases[layer_idx][j]
 
         return output, error
 
@@ -325,6 +332,7 @@ state = {
     "position_mode":         "percent",
     "buy_risk_pct":          0.20,
     "stop_loss_pct":         0.07,
+    "take_profit_pct":       0.10,
     "ai_learning_rate":      0.005,
     "bb_window":             DEFAULT_BB_WINDOW,
     "bb_stddev":             DEFAULT_BB_STDDEV,
@@ -426,13 +434,22 @@ def fetch_price(symbol, api_key):
         headers={"X-CMC_PRO_API_KEY": api_key}
     )
     context = ssl.create_default_context(cafile=certifi.where())
-    try:
-        with urllib.request.urlopen(req, context=context) as response:
-            data = json.load(response)
-            return data["data"][symbol]["quote"]["USD"]["price"]
-    except Exception as e:
-        log(f"Error: Invalid API token or connection refused. ({e})")
-        return None
+    
+    retries = 3
+    backoff = 2
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(req, context=context) as response:
+                data = json.load(response)
+                return data["data"][symbol]["quote"]["USD"]["price"]
+        except Exception as e:
+            if attempt < retries - 1:
+                sleep_time = backoff ** attempt
+                log(f"Warning: Price fetch failed ({e}). Retrying in {sleep_time}s...")
+                time.sleep(sleep_time)
+            else:
+                log(f"Error: Invalid API token or connection refused after {retries} attempts. ({e})")
+                return None
 
 
 # ── TRADE EXECUTION ───────────────────────────────────────────────────────────
@@ -609,8 +626,8 @@ def bot_loop():
             # Update accuracy
             neural_net.update_accuracy(predicted, actual_pct)
 
-            # Backpropagation — target is the actual movement, clamped
-            target_clamped = max(-1.0, min(1.0, actual_pct))  # clamp to tanh range
+            # Backpropagation — target is the actual movement, scaled and clamped
+            target_clamped = max(-1.0, min(1.0, actual_pct * 10.0))  # scale & clamp to tanh range
             neural_net.train(state["ai_last_features"], target_clamped)
 
             # Sync tracking to state for API
@@ -650,6 +667,16 @@ def bot_loop():
         if avg_entry and holdings > 0 and price < avg_entry * (1 - stop_loss_pct):
             if execute_trade("SELL", price, reason="stop-loss"):
                 state["stop_losses_hit"] += 1
+                state["last_trade_interval"] = state["interval_count"]
+                state["was_above_upper"] = state["was_below_lower"] = False
+            _save_history_point(price, sma, upper, lower, rsi)
+            _interruptible_sleep()
+            continue
+
+        # Take-profit
+        take_profit_pct = state.get("take_profit_pct", 0.10)
+        if avg_entry and holdings > 0 and price > avg_entry * (1 + take_profit_pct):
+            if execute_trade("SELL", price, reason="take-profit"):
                 state["last_trade_interval"] = state["interval_count"]
                 state["was_above_upper"] = state["was_below_lower"] = False
             _save_history_point(price, sma, upper, lower, rsi)
@@ -786,6 +813,7 @@ def start_bot():
     state["position_mode"]         = body.get("position_mode", "percent")
     state["buy_risk_pct"]          = float(body.get("buy_risk_pct", 0.20))
     state["stop_loss_pct"]         = float(body.get("stop_loss_pct", 0.07))
+    state["take_profit_pct"]       = float(body.get("take_profit_pct", 0.10))
     state["ai_learning_rate"]      = float(body.get("ai_learning_rate", 0.01))
     state["bb_window"]             = int(body.get("bb_window", DEFAULT_BB_WINDOW))
     state["bb_stddev"]             = float(body.get("bb_stddev", DEFAULT_BB_STDDEV))

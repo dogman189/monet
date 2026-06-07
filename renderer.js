@@ -62,6 +62,7 @@ const E = {
   inPosMode:      $('in-pos-mode'),
   inRiskPct:      $('in-risk-pct'),
   inStopLoss:     $('in-stop-loss'),
+  inTakeProfit:   $('in-take-profit'),
   inLr:           $('in-lr'),
   inBbWindow:     $('in-bb-window'),
   inBbStdDev:     $('in-bb-stddev'),
@@ -830,6 +831,7 @@ E.btnStart.addEventListener('click', async () => {
         position_mode:    E.inPosMode.value,
         buy_risk_pct:     (parseFloat(E.inRiskPct.value) || 20) / 100,
         stop_loss_pct:    (parseFloat(E.inStopLoss.value) || 7) / 100,
+        take_profit_pct:  (parseFloat(E.inTakeProfit.value) || 10) / 100,
         ai_learning_rate: parseFloat(E.inLr.value) || 0.01,
         bb_window:        parseInt(E.inBbWindow.value) || 20,
         bb_stddev:        parseFloat(E.inBbStdDev.value) || 2.0,
@@ -872,7 +874,7 @@ function flash(el, cls) {
 function lockInputs(v) {
   const elements = [
     E.inApiKey, E.inSymbol, E.inInterval, E.inTrade, E.inWallet,
-    E.inPosMode, E.inRiskPct, E.inStopLoss, E.inLr,
+    E.inPosMode, E.inRiskPct, E.inStopLoss, E.inTakeProfit, E.inLr,
     E.inBbWindow, E.inBbStdDev, E.inRsiPeriod, E.inRsiOversold, E.inRsiOverbought
   ];
   elements.forEach(el => {
