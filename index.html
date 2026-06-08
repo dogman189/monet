@@ -341,7 +341,16 @@ select.field-input { -webkit-appearance:none; appearance:none; background-image:
 @keyframes bspin{to{transform:rotate(360deg)}}
 .boot-sub { font-family:var(--mono); font-size:9.5px; letter-spacing:3px; color:var(--ink3); text-transform: uppercase; }
 
+/* macOS Window Controls Offset */
+html.is-mac #topbar {
+  padding-left: 80px !important;
+}
 </style>
+<script>
+  if ((window.APP_CONFIG && window.APP_CONFIG.platform === 'darwin') || navigator.userAgent.indexOf('Mac') !== -1) {
+    document.documentElement.classList.add('is-mac');
+  }
+</script>
 </head>
 <body>
 

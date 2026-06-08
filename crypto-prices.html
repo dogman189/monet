@@ -268,7 +268,19 @@ td { padding:14px 16px; vertical-align:middle; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:6px; }
 ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.15); }
 
+/* macOS Window Controls Offset */
+html.is-mac #app {
+  padding-top: 12px !important;
+}
+html.is-mac #topbar {
+  padding-left: 80px !important;
+}
 </style>
+<script>
+  if ((window.APP_CONFIG && window.APP_CONFIG.platform === 'darwin') || navigator.userAgent.indexOf('Mac') !== -1) {
+    document.documentElement.classList.add('is-mac');
+  }
+</script>
 </head>
 <body>
 

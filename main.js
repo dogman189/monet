@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, Menu } = require('electron');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 const http = require('http');
@@ -62,6 +62,16 @@ function startPythonBackend() {
 
   const { exe, args } = found;
 
+  // On macOS and Linux, ensure the backend executable has execution permissions if packaged
+  if (app.isPackaged && process.platform !== 'win32') {
+    try {
+      fs.chmodSync(exe, '755');
+      console.log(`[Electron] Set executable permissions on ${exe}`);
+    } catch (err) {
+      console.error(`[Electron] Failed to set executable permissions on ${exe}:`, err);
+    }
+  }
+
   pythonProcess = spawn(exe, args, {
     cwd: app.isPackaged ? process.resourcesPath : __dirname,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -77,9 +87,19 @@ function startPythonBackend() {
 
   pythonProcess.on('exit', (code) => {
     console.log(`[Python] Process exited with code ${code}`);
+    pythonProcess = null;
   });
 
   console.log(`[Electron] Spawned backend: ${exe} (PID ${pythonProcess.pid})`);
+}
+
+function ensureBackendRunning() {
+  if (!pythonProcess) {
+    console.log('[Electron] Python process not running, restarting it...');
+    startPythonBackend();
+    return waitForBackend();
+  }
+  return Promise.resolve();
 }
 
 function killPythonBackend() {
@@ -136,8 +156,95 @@ function createWindow() {
   });
 }
 
+// --- NATIVE MENU CREATION ---
+function createApplicationMenu() {
+  const template = [
+    ...(process.platform === 'darwin' ? [{
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    }] : []),
+    {
+      label: 'File',
+      submenu: [
+        process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        ...(process.platform === 'darwin' ? [
+          { role: 'pasteAndMatchStyle' },
+          { role: 'delete' },
+          { role: 'selectAll' },
+          { type: 'separator' },
+          {
+            label: 'Speech',
+            submenu: [
+              { role: 'startSpeaking' },
+              { role: 'stopSpeaking' }
+            ]
+          }
+        ] : [
+          { role: 'delete' },
+          { type: 'separator' },
+          { role: 'selectAll' }
+        ])
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(process.platform === 'darwin' ? [
+          { type: 'separator' },
+          { role: 'front' },
+          { type: 'separator' },
+          { role: 'window' }
+        ] : [
+          { role: 'close' }
+        ])
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
 // --- APP LIFECYCLE ---
 app.whenReady().then(async () => {
+  createApplicationMenu();
   startPythonBackend();
 
   try {
@@ -149,14 +256,23 @@ app.whenReady().then(async () => {
 
   createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  app.on('activate', async () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      try {
+        await ensureBackendRunning();
+      } catch (e) {
+        console.error('[Electron] Backend failed to restart on activation:', e.message);
+      }
+      createWindow();
+    }
   });
 });
 
 app.on('window-all-closed', () => {
-  killPythonBackend();
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') {
+    killPythonBackend();
+    app.quit();
+  }
 });
 
 app.on('before-quit', () => {
