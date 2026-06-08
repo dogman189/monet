@@ -142,7 +142,7 @@ async function waitForBackend(retries = 50, delay = 400) {
 
 async function loadConfig() {
   try {
-    const d = await (await fetch(`${BASE}/api/config`)).json();
+    const d = await (await fetch(`${BASE}/api/config`, { signal: AbortSignal.timeout(2000) })).json();
     if (d.api_key) E.inApiKey.value = d.api_key;
   } catch (_) {}
 }

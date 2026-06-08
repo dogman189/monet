@@ -18,8 +18,21 @@ function findBackendExecutable() {
   }
 
   // DEV: find system Python and run backend.py
+  // DEV: check if local virtual environment (venv or .venv) exists and use its python
   const script = path.join(__dirname, 'backend.py');
-  const candidates = process.platform === 'win32'
+  const isWin = process.platform === 'win32';
+  const localVenvs = ['venv', '.venv'];
+  for (const venvDir of localVenvs) {
+    const venvPython = isWin
+      ? path.join(__dirname, venvDir, 'Scripts', 'python.exe')
+      : path.join(__dirname, venvDir, 'bin', 'python');
+    if (fs.existsSync(venvPython)) {
+      return { exe: venvPython, args: [script] };
+    }
+  }
+
+  // DEV FALLBACK: find system Python and run backend.py
+  const candidates = isWin
     ? ['python', 'python3', 'py']
     : ['python3', 'python'];
 
@@ -62,7 +75,6 @@ function startPythonBackend() {
 
   const { exe, args } = found;
 
-  // On macOS and Linux, ensure the backend executable has execution permissions if packaged
   if (app.isPackaged && process.platform !== 'win32') {
     try {
       fs.chmodSync(exe, '755');
@@ -73,8 +85,13 @@ function startPythonBackend() {
   }
 
   pythonProcess = spawn(exe, args, {
-    cwd: app.isPackaged ? process.resourcesPath : __dirname,
+    cwd: app.isPackaged ? app.getPath('userData') : __dirname,
     stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  pythonProcess.on('error', (err) => {
+    console.error(`[Electron] Failed to start Python backend:`, err);
+    pythonProcess = null;
   });
 
   pythonProcess.stdout.on('data', (data) => {
@@ -114,7 +131,10 @@ function killPythonBackend() {
 function waitForBackend(retries = 30, delay = 500) {
   return new Promise((resolve, reject) => {
     function attempt(n) {
-      http.get(`${BACKEND_URL}/api/config`, (res) => {
+      if (!pythonProcess) {
+        return reject(new Error('Backend process died or failed to start.'));
+      }
+      const req = http.get(`${BACKEND_URL}/api/config`, (res) => {
         resolve();
       }).on('error', () => {
         if (n <= 0) {
@@ -122,6 +142,9 @@ function waitForBackend(retries = 30, delay = 500) {
         } else {
           setTimeout(() => attempt(n - 1), delay);
         }
+      });
+      req.setTimeout(1000, () => {
+        req.destroy();
       });
     }
     attempt(retries);
