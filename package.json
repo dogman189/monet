@@ -1,6 +1,6 @@
 {
   "name": "monet",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "description": "Algorithmic crypto trading bot — Electron + Python engine",
   "main": "main.js",
   "scripts": {
@@ -56,7 +56,7 @@
       "target": {
         "target": "default",
         "arch": [
-          "x64"
+          "arm64"
         ]
       },
       "extraResources": [
