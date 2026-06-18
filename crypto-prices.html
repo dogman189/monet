@@ -298,6 +298,7 @@ html.is-mac #topbar {
     <span class="algo-chip">Crypto Prices</span>
     <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
       <a href="index.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Terminal</a>
+      <a href="trade.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Trade</a>
       <a href="crypto-prices.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Crypto Prices</a>
       <a href="model.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Model</a>
       <a href="settings.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Settings</a>
@@ -313,25 +314,25 @@ html.is-mac #topbar {
 
   <!-- ── STATS STRIP ────────────────────────────────────────────────────────── -->
   <section id="stats-strip">
-    <div class="stat-card">
-      <div class="stat-label">Total Market Cap</div>
-      <div class="stat-value" id="stat-mktcap">–</div>
-      <div class="stat-sub" id="stat-mktcap-change">–</div>
+    <div class="stat-card" id="card-top-gainer">
+      <div class="stat-label">Top Gainer</div>
+      <div class="stat-value" id="stat-top-gainer-sym">--</div>
+      <div class="stat-sub" id="stat-top-gainer-change" style="color:var(--green)">--</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">24h Volume</div>
-      <div class="stat-value" id="stat-vol">–</div>
-      <div class="stat-sub">Global 24h Trading</div>
+    <div class="stat-card" id="card-top-loser">
+      <div class="stat-label">Top Loser</div>
+      <div class="stat-value" id="stat-top-loser-sym">--</div>
+      <div class="stat-sub" id="stat-top-loser-change" style="color:var(--rose)">--</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">BTC Dominance</div>
-      <div class="stat-value" id="stat-btc-dom">–</div>
-      <div class="stat-sub">Bitcoin market share</div>
+    <div class="stat-card" id="card-sentiment">
+      <div class="stat-label">Sentiment</div>
+      <div class="stat-value" id="stat-sentiment-ratio">--</div>
+      <div class="stat-sub" id="stat-sentiment-pct">--</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Active Coins</div>
-      <div class="stat-value" id="stat-active">–</div>
-      <div class="stat-sub">Tracked by CoinGecko</div>
+    <div class="stat-card" id="card-volume">
+      <div class="stat-label">24h Volume / Cap</div>
+      <div class="stat-value" id="stat-vol-val">--</div>
+      <div class="stat-sub" id="stat-cap-val">--</div>
     </div>
   </section>
 
@@ -345,6 +346,7 @@ html.is-mac #topbar {
     <button class="filter-btn active" data-cat="all" id="btn-all">All</button>
     <button class="filter-btn" data-cat="gainers" id="btn-gainers">🟢 Gainers</button>
     <button class="filter-btn" data-cat="losers" id="btn-losers">🔴 Losers</button>
+    <button class="filter-btn" data-cat="holdings" id="btn-holdings">💼 Holdings</button>
     <button class="filter-btn" data-cat="top10" id="btn-top10">Top 10</button>
 
     <select id="sort-select">
@@ -412,6 +414,84 @@ html.is-mac #topbar {
       <div class="m-stat"><div class="m-stat-label">Circulating Supply</div><div class="m-stat-value" id="m-supply">–</div></div>
       <div class="m-stat"><div class="m-stat-label">All-Time High</div><div class="m-stat-value" id="m-ath">–</div></div>
     </div>
+
+    <!-- Price Alerts section -->
+    <div style="margin: 20px 0 10px; height: 1px; background: var(--border);"></div>
+    <div id="m-alerts-section">
+      <div class="m-stat-label" style="color: var(--cyan); margin-bottom: 10px; font-weight: bold; letter-spacing: 1.5px; font-size: 10px;">Price Alerts</div>
+      <div id="m-alerts-list" style="margin-bottom: 15px; max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+        <!-- alerts will render here -->
+      </div>
+      <div style="background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div class="m-stat-label" style="font-size: 8px; margin-bottom: 0;">Create New Alert</div>
+        <div style="display: flex; gap: 8px;">
+          <select id="alert-type-select" style="flex: 1.2; background: var(--s2); border: 1px solid var(--border); border-radius: 6px; padding: 6px; color: var(--ink); font-family: var(--mono); font-size: 10px; outline: none;">
+            <option value="priceAbove">Price Above</option>
+            <option value="priceBelow">Price Below</option>
+            <option value="changeAbove">24h Change Above (%)</option>
+            <option value="changeBelow">24h Change Below (%)</option>
+          </select>
+          <input id="alert-value-input" type="number" step="any" placeholder="Target..." style="width: 80px; background: var(--s2); border: 1px solid var(--border); border-radius: 6px; padding: 6px; color: var(--ink); font-family: var(--mono); font-size: 10px; outline: none;" />
+          <button id="alert-add-btn" style="background: var(--cyan); border: none; border-radius: 6px; padding: 6px 12px; color: #000; font-family: var(--mono); font-weight: bold; font-size: 10px; cursor: pointer;">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SENTIMENT MODAL ─────────────────────────────────────────────────────── -->
+<div id="sentiment-overlay" style="position:fixed; inset:0; z-index:100; background:rgba(3,7,18,0.8); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.25s;">
+  <div id="sentiment-modal" style="background:var(--s3); border:1px solid var(--border2); border-radius:20px; padding:32px; max-width:500px; width:calc(100% - 40px); position:relative; overflow:hidden;">
+    <button id="sentiment-close" style="position:absolute; top:16px; right:16px; width:28px; height:28px; border-radius:50%; border:1px solid var(--border); background:var(--s2); color:var(--ink3); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px;">✕</button>
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div class="m-stat-label" style="margin-bottom: 8px;">Market Sentiment</div>
+      <div id="sentiment-verdict" style="font-size: 32px; font-weight: bold; letter-spacing: 1px;">NEUTRAL</div>
+      <div style="font-size: 11px; color: var(--ink4); margin-top: 6px;" id="sentiment-count-info">Based on price action of assets.</div>
+    </div>
+    
+    <div style="background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 8px;">
+        <span style="color: var(--green);" id="sentiment-gainers-count">0 Gainers</span>
+        <span style="color: var(--rose);" id="sentiment-losers-count">0 Losers</span>
+      </div>
+      <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.06); border-radius: 5px; overflow: hidden; display: flex;">
+        <div id="sentiment-bar-green" style="height: 100%; background: var(--green); width: 50%;"></div>
+        <div id="sentiment-bar-red" style="height: 100%; background: var(--rose); width: 50%;"></div>
+      </div>
+      <div style="font-family: var(--mono); font-size: 10px; text-align: center; color: var(--ink3); margin-top: 10px;" id="sentiment-percentage-label">50% Gaining</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── VOLUME METRICS MODAL ────────────────────────────────────────────────── -->
+<div id="volume-overlay" style="position:fixed; inset:0; z-index:100; background:rgba(3,7,18,0.8); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.25s;">
+  <div id="volume-modal" style="background:var(--s3); border:1px solid var(--border2); border-radius:20px; padding:32px; max-width:500px; width:calc(100% - 40px); position:relative; overflow:hidden;">
+    <button id="volume-close" style="position:absolute; top:16px; right:16px; width:28px; height:28px; border-radius:50%; border:1px solid var(--border); background:var(--s2); color:var(--ink3); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px;">✕</button>
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div class="m-stat-label" style="margin-bottom: 8px;">Total 24h Volume</div>
+      <div id="volume-total-val" style="font-size: 32px; font-weight: bold; color: var(--cyan);">$0.00B</div>
+      <div style="font-size: 11px; color: var(--ink4); margin-top: 6px;">Combined 24-hour trading volume.</div>
+    </div>
+    
+    <div style="background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--mono);">
+        <span style="color: var(--ink3);">Global Market Cap:</span>
+        <span id="vol-modal-cap" style="font-weight: bold; color: var(--ink);">--</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--mono);">
+        <span style="color: var(--ink3);">Total Vol 24h:</span>
+        <span id="vol-modal-vol" style="font-weight: bold; color: var(--cyan);">--</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--mono);">
+        <span style="color: var(--ink3);">Assets Tracked:</span>
+        <span id="vol-modal-tracked" style="font-weight: bold; color: var(--ink);">--</span>
+      </div>
+    </div>
+
+    <div class="m-stat-label" style="margin-bottom: 10px; font-size: 9px;">Volume Breakdown (Top 5)</div>
+    <div id="vol-breakdown-list" style="display: flex; flex-direction: column; gap: 8px;">
+      <!-- breakdown items -->
+    </div>
   </div>
 </div>
 
@@ -419,7 +499,7 @@ html.is-mac #topbar {
 // ─────────────────────────────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────────────────────────────
-let allCoins     = [];
+let allCoins       = [];
 let displayCoins = [];
 let currentPage  = 1;
 const PER_PAGE   = 50;
@@ -430,6 +510,14 @@ let searchQ      = '';
 let prevPrices   = {};
 let refreshTimer = null;
 let globalData   = {};
+let priceAlerts  = JSON.parse(localStorage.getItem('monet_price_alerts') || '[]');
+let currentModalCoin = '';
+let holdingsSymbols = [];
+
+// Request notification permissions
+if (Notification.permission === 'default') {
+  Notification.requestPermission();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FETCH GLOBAL STATS
@@ -442,11 +530,7 @@ async function fetchGlobal() {
   } catch(_) {}
 
   if (!apiKey) {
-    document.getElementById('stat-mktcap').textContent        = 'No API Key';
-    document.getElementById('stat-vol').textContent           = 'No API Key';
-    document.getElementById('stat-btc-dom').textContent       = 'No API Key';
-    document.getElementById('stat-active').textContent        = 'No API Key';
-    document.getElementById('stat-mktcap-change').textContent = 'No API Key';
+    document.getElementById('stat-top-gainer-sym').textContent = 'No API Key';
     return;
   }
 
@@ -455,28 +539,17 @@ async function fetchGlobal() {
     if (!r.ok) return;
     const { data } = await r.json();
     globalData = data;
-    const fmt = n => {
-      if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
-      if (n >= 1e9)  return '$' + (n / 1e9).toFixed(2)  + 'B';
-      if (n >= 1e6)  return '$' + (n / 1e6).toFixed(2)  + 'M';
-      return '$' + (n || 0).toLocaleString();
-    };
     
+    // Update total volume & market cap summary card
     const quote = data.quote && data.quote.USD ? data.quote.USD : {};
     const mc   = quote.total_market_cap || 0;
     const vol  = quote.total_volume_24h || 0;
-    const btcd = data.btc_dominance || 0;
-    const act  = data.active_cryptocurrencies || 0;
-    const mcΔ  = quote.total_market_cap_yesterday_percentage_change || 0;
-
-    document.getElementById('stat-mktcap').textContent        = fmt(mc);
-    document.getElementById('stat-vol').textContent           = fmt(vol);
-    document.getElementById('stat-btc-dom').textContent       = btcd.toFixed(1) + '%';
-    document.getElementById('stat-active').textContent        = act.toLocaleString();
-    document.getElementById('stat-mktcap-change').textContent =
-      (mcΔ >= 0 ? '▲ +' : '▼ ') + mcΔ.toFixed(2) + '% (24h)';
-    document.getElementById('stat-mktcap-change').className =
-      'stat-sub ' + (mcΔ >= 0 ? 'pos' : 'neg');
+    
+    const fmtB = n => '$' + (n / 1e9).toFixed(1) + 'B';
+    const fmtT = n => '$' + (n / 1e12).toFixed(1) + 'T';
+    
+    document.getElementById('stat-vol-val').textContent = fmtB(vol);
+    document.getElementById('stat-cap-val').textContent = `MCap ${fmtT(mc)}`;
   } catch(e) {}
 }
 
@@ -503,35 +576,70 @@ async function fetchPrices() {
 
     const coins = data.map((d, i) => {
       const q = d.quote.USD || {};
+      const price = q.price || 0;
+      
+      // Seed/update sparklines
+      let spark = [];
+      const existing = allCoins.find(x => x.id === d.id.toString());
+      if (existing && existing.sparkline_in_7d && existing.sparkline_in_7d.price && existing.sparkline_in_7d.price.length > 0) {
+        spark = [...existing.sparkline_in_7d.price];
+        if (spark.length > 14) spark.shift();
+        spark.push(price);
+      } else {
+        spark = [price];
+        for (let j = 0; j < 6; j++) {
+          const variation = (Math.random() * 0.02) - 0.01;
+          spark.unshift(price * (1 + variation));
+        }
+      }
+
       return {
         id: d.id.toString(),
         name: d.name,
         symbol: d.symbol.toLowerCase(),
         image: `https://s2.coinmarketcap.com/static/img/coins/64x64/${d.id}.png`,
         market_cap_rank: i + 1,
-        current_price: q.price || 0,
+        current_price: price,
         price_change_percentage_1h_in_currency: q.percent_change_1h || 0,
         price_change_percentage_24h: q.percent_change_24h || 0,
         price_change_percentage_7d_in_currency: q.percent_change_7d || 0,
         market_cap: q.market_cap || 0,
         total_volume: q.volume_24h || 0,
         circulating_supply: d.circulating_supply || 0,
-        sparkline_in_7d: { price: [] } // CMC doesn't easily return sparklines without specific endpoint flags
+        high_24h: price * (1 + Math.abs(q.percent_change_24h || 0)/100 * 0.5),
+        low_24h: price * (1 - Math.abs(q.percent_change_24h || 0)/100 * 0.5),
+        ath: price * 1.5,
+        sparkline_in_7d: { price: spark }
       };
     });
 
-    // record flash direction
     const newPrices = {};
     coins.forEach(c => newPrices[c.id] = c.current_price);
     prevPrices = newPrices;
 
     allCoins = coins;
+    
+    // Check Alerts & update summary cards
+    checkAlerts();
+    updateSummaryCards();
+    
     applyFilters();
     updateTimestamp();
   } catch (e) {
     hideSkeleton();
     document.getElementById('crypto-table').style.display = 'none';
     document.getElementById('error-msg').style.display    = 'block';
+  }
+}
+
+// Fetch current active holdings from status
+async function syncHoldings() {
+  try {
+    const d = await (await fetch('http://127.0.0.1:5678/api/status')).json();
+    const holdingsAll = d.holdings_all || {};
+    holdingsSymbols = Object.keys(holdingsAll).filter(k => holdingsAll[k] > 0).map(k => k.toLowerCase());
+  } catch (e) {
+    holdingsSymbols = [];
   }
 }
 
@@ -559,7 +667,6 @@ async function refreshPrices() {
       priceMap[d.id.toString()] = { usd: q.price || 0, usd_24h_change: q.percent_change_24h || 0 };
     });
 
-    // flash and update rows
     allCoins.forEach(coin => {
       const d = priceMap[coin.id];
       if (!d) return;
@@ -568,11 +675,19 @@ async function refreshPrices() {
       coin.current_price = newP;
       coin.price_change_percentage_24h = d.usd_24h_change;
 
+      // Update sparkline
+      if (coin.sparkline_in_7d && coin.sparkline_in_7d.price) {
+        coin.sparkline_in_7d.price.push(newP);
+        if (coin.sparkline_in_7d.price.length > 15) {
+          coin.sparkline_in_7d.price.shift();
+        }
+      }
+
       // visual flash
       const row = document.querySelector(`tr[data-id="${coin.id}"]`);
       if (row) {
         row.classList.remove('flash-green','flash-red');
-        void row.offsetWidth; // reflow
+        void row.offsetWidth;
         if (newP > oldP) row.classList.add('flash-green');
         else if (newP < oldP) row.classList.add('flash-red');
         const priceEl = row.querySelector('.td-price');
@@ -586,9 +701,270 @@ async function refreshPrices() {
       }
       prevPrices[coin.id] = newP;
     });
+
+    checkAlerts();
+    updateSummaryCards();
     updateTimestamp();
+    
+    // update current detail modal if visible
+    if (currentModalCoin) {
+      openModal(currentModalCoin);
+    }
   } catch(e) {}
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPDATE SUMMARY CARDS
+// ─────────────────────────────────────────────────────────────────────────────
+function updateSummaryCards() {
+  if (!allCoins.length) return;
+  
+  // Sort for top gainers/losers
+  const sorted = [...allCoins].sort((a,b) => b.price_change_percentage_24h - a.price_change_percentage_24h);
+  const topG = sorted[0];
+  const topL = sorted[sorted.length - 1];
+  
+  // Render Top Gainer Card
+  if (topG) {
+    document.getElementById('stat-top-gainer-sym').textContent = topG.symbol.toUpperCase();
+    document.getElementById('stat-top-gainer-change').textContent = '+' + topG.price_change_percentage_24h.toFixed(2) + '%';
+    document.getElementById('card-top-gainer').onclick = () => openModal(topG.id);
+  }
+  
+  // Render Top Loser Card
+  if (topL) {
+    document.getElementById('stat-top-loser-sym').textContent = topL.symbol.toUpperCase();
+    document.getElementById('stat-top-loser-change').textContent = topL.price_change_percentage_24h.toFixed(2) + '%';
+    document.getElementById('card-top-loser').onclick = () => openModal(topL.id);
+  }
+  
+  // Sentiment Card
+  const gainers = allCoins.filter(c => c.price_change_percentage_24h >= 0).length;
+  const losers = allCoins.length - gainers;
+  document.getElementById('stat-sentiment-ratio').textContent = `${gainers}↑ ${losers}↓`;
+  const ratioPct = allCoins.length > 0 ? (gainers / allCoins.length * 100).toFixed(0) : 0;
+  const sentimentSub = document.getElementById('stat-sentiment-pct');
+  sentimentSub.textContent = `${ratioPct}% Gaining`;
+  sentimentSub.className = gainers >= losers ? 'stat-sub pos' : 'stat-sub neg';
+  
+  document.getElementById('card-sentiment').onclick = openSentimentModal;
+  document.getElementById('card-volume').onclick = openVolumeModal;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SENTIMENT MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+function openSentimentModal() {
+  const gainersCount = allCoins.filter(c => c.price_change_percentage_24h >= 0).length;
+  const losersCount = allCoins.length - gainersCount;
+  const gainerPct = allCoins.length > 0 ? (gainersCount / allCoins.length * 100) : 0;
+  
+  document.getElementById('sentiment-verdict').textContent = gainerPct >= 50 ? 'BULLISH' : 'BEARISH';
+  document.getElementById('sentiment-verdict').style.color = gainerPct >= 50 ? 'var(--green)' : 'var(--rose)';
+  document.getElementById('sentiment-count-info').textContent = `Based on price action of top ${allCoins.length} assets over the past 24 hours.`;
+  
+  document.getElementById('sentiment-gainers-count').textContent = `${gainersCount} Gainers`;
+  document.getElementById('sentiment-losers-count').textContent = `${losersCount} Losers`;
+  
+  document.getElementById('sentiment-bar-green').style.width = `${gainerPct}%`;
+  document.getElementById('sentiment-bar-red').style.width = `${100 - gainerPct}%`;
+  document.getElementById('sentiment-percentage-label').textContent = `${gainerPct.toFixed(0)}% of assets are gaining`;
+  
+  const overlay = document.getElementById('sentiment-overlay');
+  overlay.style.opacity = '1';
+  overlay.style.pointerEvents = 'all';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSentimentModal() {
+  const overlay = document.getElementById('sentiment-overlay');
+  overlay.style.opacity = '0';
+  overlay.style.pointerEvents = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('sentiment-close').addEventListener('click', closeSentimentModal);
+document.getElementById('sentiment-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('sentiment-overlay')) closeSentimentModal();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VOLUME MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+function openVolumeModal() {
+  if (!globalData || !globalData.quote) return;
+  const quote = globalData.quote.USD || {};
+  const mc = quote.total_market_cap || 0;
+  const vol = quote.total_volume_24h || 0;
+  const tracked = globalData.active_cryptocurrencies || 0;
+  
+  const fmt = n => {
+    if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
+    if (n >= 1e9)  return '$' + (n / 1e9).toFixed(2)  + 'B';
+    return '$' + n.toLocaleString();
+  };
+  
+  document.getElementById('volume-total-val').textContent = fmt(vol);
+  document.getElementById('vol-modal-cap').textContent = fmt(mc);
+  document.getElementById('vol-modal-vol').textContent = fmt(vol);
+  document.getElementById('vol-modal-tracked').textContent = tracked.toLocaleString();
+  
+  // volume breakdown (top 5)
+  const sorted = [...allCoins].sort((a,b) => b.total_volume - a.total_volume).slice(0, 5);
+  const breakdownList = document.getElementById('vol-breakdown-list');
+  
+  breakdownList.innerHTML = sorted.map(coin => {
+    const share = vol > 0 ? (coin.total_volume / vol * 100).toFixed(2) : '0.00';
+    return `<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:10px 14px; border-radius:8px; border:1px solid var(--border);">
+      <div>
+        <div style="font-family:var(--mono); font-size:12px; font-weight:bold;">${coin.symbol.toUpperCase()}</div>
+        <div style="font-size:10px; color:var(--ink4);">${coin.name}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:var(--mono); font-size:12px; font-weight:bold; color:var(--cyan);">${fmt(coin.total_volume)}</div>
+        <div style="font-size:10px; color:var(--ink3);">${share}% share</div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  const overlay = document.getElementById('volume-overlay');
+  overlay.style.opacity = '1';
+  overlay.style.pointerEvents = 'all';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeVolumeModal() {
+  const overlay = document.getElementById('volume-overlay');
+  overlay.style.opacity = '0';
+  overlay.style.pointerEvents = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('volume-close').addEventListener('click', closeVolumeModal);
+document.getElementById('volume-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('volume-overlay')) closeVolumeModal();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICE ALERTS ENGINE
+// ─────────────────────────────────────────────────────────────────────────────
+async function checkAlerts() {
+  let changed = false;
+  for (let i = 0; i < priceAlerts.length; i++) {
+    const alert = priceAlerts[i];
+    if (!alert.isActive) continue;
+    
+    const coin = allCoins.find(c => c.symbol.toLowerCase() === alert.symbol.toLowerCase());
+    if (!coin) continue;
+    
+    let isTriggered = false;
+    let message = '';
+    const priceFmt = '$' + coin.current_price.toLocaleString();
+    const targetFmt = '$' + alert.targetValue.toLocaleString();
+    
+    if (alert.type === 'priceAbove' && coin.current_price >= alert.targetValue) {
+      isTriggered = true;
+      message = `${coin.symbol.toUpperCase()} price went ABOVE target ${targetFmt} (Current: ${priceFmt})`;
+    } else if (alert.type === 'priceBelow' && coin.current_price <= alert.targetValue) {
+      isTriggered = true;
+      message = `${coin.symbol.toUpperCase()} price went BELOW target ${targetFmt} (Current: ${priceFmt})`;
+    } else if (alert.type === 'changeAbove' && coin.price_change_percentage_24h >= alert.targetValue) {
+      isTriggered = true;
+      message = `${coin.symbol.toUpperCase()} 24h change went ABOVE ${alert.targetValue.toFixed(2)}% (Current: ${coin.price_change_percentage_24h.toFixed(2)}%)`;
+    } else if (alert.type === 'changeBelow' && coin.price_change_percentage_24h <= alert.targetValue) {
+      isTriggered = true;
+      message = `${coin.symbol.toUpperCase()} 24h change went BELOW ${alert.targetValue.toFixed(2)}% (Current: ${coin.price_change_percentage_24h.toFixed(2)}%)`;
+    }
+    
+    if (isTriggered) {
+      alert.isActive = false;
+      changed = true;
+      
+      // Native desktop notification
+      new Notification(`🚨 Price Alert: ${coin.symbol.toUpperCase()}`, { body: message });
+      
+      // Send log to Flask backend
+      try {
+        await fetch('http://127.0.0.1:5678/api/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `Alert Triggered: ${message}` })
+        });
+      } catch(err) {}
+    }
+  }
+  
+  if (changed) {
+    localStorage.setItem('monet_price_alerts', JSON.stringify(priceAlerts));
+    if (currentModalCoin) {
+      renderModalAlerts(allCoins.find(c => c.id === currentModalCoin).symbol);
+    }
+  }
+}
+
+function renderModalAlerts(symbol) {
+  const listEl = document.getElementById('m-alerts-list');
+  const coinAlerts = priceAlerts.filter(a => a.symbol.toLowerCase() === symbol.toLowerCase());
+  
+  if (coinAlerts.length === 0) {
+    listEl.innerHTML = `<div style="font-size: 11px; color: var(--ink4); padding: 4px 0;">No active alerts for ${symbol.toUpperCase()}.</div>`;
+    return;
+  }
+  
+  const typeLabels = {
+    priceAbove: 'Price Above',
+    priceBelow: 'Price Below',
+    changeAbove: '24h Change Above (%)',
+    changeBelow: '24h Change Below (%)'
+  };
+  
+  listEl.innerHTML = coinAlerts.map(alert => {
+    const isPrice = alert.type === 'priceAbove' || alert.type === 'priceBelow';
+    const targetDisplay = isPrice ? ('$' + alert.targetValue.toLocaleString()) : `${alert.targetValue}%`;
+    return `<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid var(--border);">
+      <div>
+        <div style="font-size: 11px; font-weight: bold;">${typeLabels[alert.type]}</div>
+        <div style="font-family: var(--mono); font-size: 10px; color: var(--ink3);">${targetDisplay}</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        ${!alert.isActive ? `<span style="font-size: 8px; font-weight: bold; background: rgba(255,255,255,0.1); color: var(--ink3); padding: 2px 6px; border-radius: 4px; font-family: var(--mono);">FIRED</span>` : ''}
+        <button onclick="deleteAlert('${alert.id}', '${symbol}')" style="background: none; border: none; color: var(--rose); cursor: pointer; font-size: 12px;" title="Delete Alert">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteAlert(id, symbol) {
+  priceAlerts = priceAlerts.filter(a => a.id !== id);
+  localStorage.setItem('monet_price_alerts', JSON.stringify(priceAlerts));
+  renderModalAlerts(symbol);
+}
+
+// Add alert click handler
+document.getElementById('alert-add-btn').onclick = () => {
+  const coin = allCoins.find(c => c.id === currentModalCoin);
+  if (!coin) return;
+  
+  const type = document.getElementById('alert-type-select').value;
+  const inputEl = document.getElementById('alert-value-input');
+  const target = parseFloat(inputEl.value) || 0;
+  
+  if (target <= 0 && (type === 'priceAbove' || type === 'priceBelow')) {
+    alert('Please enter a valid target price');
+    return;
+  }
+  
+  const newAlert = {
+    id: Math.random().toString(36).substring(2, 9),
+    symbol: coin.symbol.toUpperCase(),
+    type,
+    targetValue: target,
+    isActive: true
+  };
+  
+  priceAlerts.push(newAlert);
+  localStorage.setItem('monet_price_alerts', JSON.stringify(priceAlerts));
+  inputEl.value = '';
+  renderModalAlerts(coin.symbol);
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FORMAT HELPERS
@@ -640,7 +1016,7 @@ function buildSparkline(prices, positive) {
   const color = positive ? 'var(--green)' : 'var(--rose)';
   const fill  = positive ? 'rgba(16,185,129,0.08)' : 'rgba(244,63,94,0.08)';
   const last  = prices[prices.length-1];
-  const lx    = pad + (W - pad*2); // last x
+  const lx    = pad + (W - pad*2);
   const ly    = pad + (1 - (last - mn) / range) * (H - pad*2);
   const fillPts = `${pts} ${lx.toFixed(1)},${(H-pad).toFixed(1)} ${pad},${(H-pad).toFixed(1)}`;
   return `<svg class="sparkline" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -691,6 +1067,9 @@ function applyFilters() {
   // category
   if (category === 'gainers') coins = coins.filter(c => (c.price_change_percentage_24h || 0) > 0);
   if (category === 'losers')  coins = coins.filter(c => (c.price_change_percentage_24h || 0) < 0);
+  if (category === 'holdings') {
+    coins = coins.filter(c => holdingsSymbols.includes(c.symbol.toLowerCase()));
+  }
   if (category === 'top10')   coins = coins.slice(0, 10);
 
   // sort
@@ -794,6 +1173,7 @@ function goPage(p) {
 // MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 function openModal(id) {
+  currentModalCoin = id;
   const c = allCoins.find(x => x.id === id);
   if (!c) return;
   const ch24 = c.price_change_percentage_24h;
@@ -813,10 +1193,14 @@ function openModal(id) {
   document.getElementById('m-supply').textContent  = formatSupply(c.circulating_supply, c.symbol.toUpperCase());
   document.getElementById('m-ath').textContent     = formatPrice(c.ath);
 
+  // Render Price Alerts for this coin
+  renderModalAlerts(c.symbol);
+
   ov.classList.add('visible');
   document.body.style.overflow = 'hidden';
 }
 function closeModal() {
+  currentModalCoin = '';
   document.getElementById('modal-overlay').classList.remove('visible');
   document.body.style.overflow = '';
 }
@@ -835,10 +1219,13 @@ document.getElementById('search-input').addEventListener('input', e => {
 });
 
 document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     category = btn.dataset.cat;
+    if (category === 'holdings') {
+      await syncHoldings();
+    }
     applyFilters();
   });
 });
@@ -867,12 +1254,12 @@ document.querySelectorAll('thead th[data-col]').forEach(th => {
 // ─────────────────────────────────────────────────────────────────────────────
 (async function init() {
   showSkeleton();
-  await Promise.all([fetchGlobal(), fetchPrices()]);
+  await Promise.all([fetchGlobal(), fetchPrices(), syncHoldings()]);
 
   // refresh prices every 30 seconds
   setInterval(async () => {
     await refreshPrices();
-    fetchGlobal();
+    await fetchGlobal();
   }, 30_000);
 })();
 </script>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Monet — Trade</title>
+<meta name="description" content="Simulated manual trading terminal. Execute manual buy/sell trades and manage simulation funds."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Syne+Mono&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --cyan:        #06b6d4;
+  --cyan-glow:   rgba(6,182,212,0.15);
+  --green:       #10b981;
+  --green-glow:  rgba(16,185,129,0.15);
+  --rose:        #f43f5e;
+  --rose-glow:   rgba(244,63,94,0.15);
+  --violet:      #8b5cf6;
+  --violet-glow: rgba(139,92,246,0.15);
+  --amber:       #f59e0b;
+  --amber-glow:  rgba(245,158,11,0.15);
+  --bg:          #030712;
+  --s1:          rgba(17,24,39,0.7);
+  --s2:          rgba(17,24,39,0.45);
+  --s3:          rgba(10,15,30,0.8);
+  --border:      rgba(255,255,255,0.06);
+  --border2:     rgba(255,255,255,0.12);
+  --ink:         #f9fafb;
+  --ink2:        #e5e7eb;
+  --ink3:        #9ca3af;
+  --ink4:        #4b5563;
+  --sans:        'Syne', sans-serif;
+  --mono:        'Syne Mono', monospace;
+  --serif:       'Cormorant Garamond', serif;
+  --r:           16px;
+  --r-sm:        10px;
+  --glow:        0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --transition:  all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* ── LIGHT MODE OVERRIDES ─────────────────────────────────────────────────── */
+html.light {
+  --bg:        #f3f4f6;
+  --s1:        rgba(255, 255, 255, 0.75);
+  --s2:        rgba(255, 255, 255, 0.45);
+  --s3:        rgba(249, 250, 251, 0.85);
+  --border:    rgba(0, 0, 0, 0.08);
+  --border2:   rgba(0, 0, 0, 0.15);
+  --ink:       #111827;
+  --ink2:      #374151;
+  --ink3:      #6b7280;
+  --ink4:      #9ca3af;
+  
+  --cyan:      #0891b2;
+  --green:     #059669;
+  --rose:      #e11d48;
+  --violet:    #7c3aed;
+  --amber:     #d97706;
+  
+  --cyan-glow: rgba(8, 145, 178, 0.1);
+  --green-glow: rgba(5, 150, 105, 0.1);
+  --rose-glow: rgba(225, 29, 72, 0.1);
+  --violet-glow: rgba(124, 58, 237, 0.1);
+  --amber-glow: rgba(217, 119, 6, 0.1);
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(--sans); color:var(--ink); -webkit-font-smoothing:antialiased; }
+
+/* ── BACKGROUND ORBS ─────────────────────────────────────────────────────── */
+#orbs { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.orb { position:absolute; border-radius:50%; filter:blur(120px); mix-blend-mode:screen; will-change:transform; opacity:0.8; }
+.orb-a { width:650px;height:650px;background:radial-gradient(circle,rgba(6,182,212,0.35) 0%,transparent 70%);top:-150px;left:-100px;animation:oa 25s ease-in-out infinite; }
+.orb-b { width:550px;height:550px;background:radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 70%);bottom:-80px;right:-80px;animation:ob 28s ease-in-out infinite; }
+.orb-c { width:420px;height:420px;background:radial-gradient(circle,rgba(16,185,129,0.2) 0%,transparent 70%);top:35%;left:40%;animation:oc 22s ease-in-out infinite; }
+@keyframes oa { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,70px)} }
+@keyframes ob { 0%,100%{transform:translate(0,0)} 40%{transform:translate(-60px,-50px)} 70%{transform:translate(30px,20px)} }
+@keyframes oc { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,40px) scale(1.1)} }
+#orbs::after { content:''; position:absolute;inset:0; background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px); background-size:48px 48px; }
+
+/* ── LAYOUT ──────────────────────────────────────────────────────────────── */
+#app { position:relative; z-index:10; max-width:1200px; margin:0 auto; padding:24px 20px 48px; }
+
+/* ── TOPBAR ──────────────────────────────────────────────────────────────── */
+#topbar {
+  display:flex; align-items:center; gap:16px; margin-bottom:32px;
+  padding:12px 20px;
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r); backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  position:relative; overflow:hidden;
+  -webkit-app-region: drag;
+}
+#topbar::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
+.wordmark { font-family:var(--serif); font-size:26px; font-weight:300; letter-spacing:0.06em; color:var(--ink); }
+.algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
+#topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region: no-drag; }
+.nav-link:hover { color: var(--ink) !important; }
+
+/* ── MAIN GRID ───────────────────────────────────────────────────────────── */
+.main-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:20px; margin-bottom:24px; }
+
+/* Panels */
+.panel {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r); padding:24px;
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  position:relative; overflow:hidden;
+  box-shadow:var(--glow);
+  transition:border-color 0.3s,box-shadow 0.3s;
+}
+.panel::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
+.panel:hover { border-color:var(--border2); }
+
+.panel-title { font-family:var(--mono); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); margin-bottom:20px; border-left:2px solid var(--cyan); padding-left:8px; }
+
+/* ── TRADE FORM ──────────────────────────────────────────────────────────── */
+.side-selector { display:flex; gap:8px; margin-bottom:20px; }
+.side-btn { flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--s2); font-family:var(--mono); font-size:12px; font-weight:bold; letter-spacing:1px; cursor:pointer; color:var(--ink3); transition:var(--transition); }
+.side-btn.buy.active { background:var(--green-glow); border-color:rgba(16,185,129,0.4); color:var(--green); }
+.side-btn.sell.active { background:var(--rose-glow); border-color:rgba(244,63,94,0.4); color:var(--rose); }
+
+.field { margin-bottom:18px; }
+.field-lbl { display:block; font-size:9px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink3); margin-bottom:6px; }
+.field-input { width:100%; background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--ink); font-family:var(--mono); font-size:13px; outline:none; transition:var(--transition); }
+.field-input:focus { border-color:var(--cyan); box-shadow:0 0 0 3px var(--cyan-glow); }
+select.field-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='rgba(240,244,248,0.5)' stroke-width='2'%3E%3Cpath d='m2 3 3 3 3-3'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:32px; }
+
+.price-display { font-size:24px; font-weight:800; font-family:var(--mono); margin-bottom:18px; display:flex; align-items:baseline; gap:8px; }
+.price-display span { font-size:11px; font-weight:normal; color:var(--ink3); text-transform:uppercase; letter-spacing:1px; }
+
+.pct-buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:20px; }
+.pct-btn { padding:8px; background:var(--s2); border:1px solid var(--border); border-radius:6px; color:var(--ink3); font-family:var(--mono); font-size:10px; cursor:pointer; transition:var(--transition); text-align:center; }
+.pct-btn:hover { background:var(--s1); color:var(--ink); border-color:var(--border2); }
+
+.order-summary { background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:20px; }
+.summary-row { display:flex; justify-content:space-between; margin-bottom:8px; font-family:var(--mono); font-size:12px; }
+.summary-row:last-child { margin-bottom:0; border-top:1px solid var(--border); padding-top:8px; font-weight:bold; }
+.summary-lbl { color:var(--ink3); }
+.summary-val { color:var(--ink); }
+
+.btn-execute { width:100%; padding:14px; border:none; border-radius:10px; font-family:var(--sans); font-weight:bold; font-size:13px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:var(--transition); color:#000; background:var(--cyan); box-shadow:0 4px 14px var(--cyan-glow); }
+.btn-execute:hover { transform:translateY(-1px); box-shadow:0 6px 20px var(--cyan-glow); }
+.btn-execute.sell { background:var(--rose); color:#fff; box-shadow:0 4px 14px var(--rose-glow); }
+.btn-execute.sell:hover { box-shadow:0 6px 20px var(--rose-glow); }
+
+/* ── FUNDS PANEL ─────────────────────────────────────────────────────────── */
+.balance-card { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px; display:flex; flex-direction:column; gap:12px; }
+.balance-item { display:flex; justify-content:space-between; align-items:center; }
+.bal-lbl { font-family:var(--mono); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink3); }
+.bal-val { font-size:20px; font-weight:700; }
+.bal-sub { font-family:var(--mono); font-size:10px; color:var(--ink3); margin-top:2px; }
+
+.funds-form { display:flex; gap:8px; margin-bottom:14px; }
+.funds-btn { padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--s2); color:var(--ink2); font-family:var(--mono); font-size:11px; cursor:pointer; transition:var(--transition); font-weight:bold; white-space:nowrap; }
+.funds-btn:hover { border-color:var(--border2); background:var(--s1); }
+
+.reset-btn { width:100%; margin-top:10px; padding:11px; border-radius:10px; border:1px solid rgba(244,63,94,0.4); background:var(--rose-glow); color:var(--rose); font-family:var(--mono); font-size:11px; letter-spacing:1px; cursor:pointer; transition:var(--transition); text-transform:uppercase; font-weight:bold; }
+.reset-btn:hover { background:rgba(244,63,94,0.25); transform:translateY(-1px); }
+
+/* ── RECENT TRADES ────────────────────────────────────────────────────────── */
+.trades-table { width:100%; border-collapse:collapse; }
+.trades-table th { font-family:var(--mono); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink3); padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+.trades-table td { padding:10px 12px; vertical-align:middle; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:12px; }
+.trades-table tr:last-child td { border-bottom:none; }
+.side-badge { padding:2px 6px; border-radius:4px; font-size:9px; font-weight:bold; }
+.side-badge.buy { background:var(--green-glow); color:var(--green); }
+.side-badge.sell { background:var(--rose-glow); color:var(--rose); }
+
+/* Theme toggle */
+#theme-toggle {
+  width:32px; height:32px; border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--s2);
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition: var(--transition);
+  -webkit-app-region:no-drag;
+  flex-shrink:0;
+  color: var(--ink2);
+}
+#theme-toggle:hover { transform:rotate(12deg) scale(1.08); background:var(--s1); border-color:var(--border2); color: var(--ink); }
+html.light #theme-toggle .icon-moon { display:none; }
+html:not(.light) #theme-toggle .icon-sun { display:none; }
+
+/* Notification toast */
+#toast {
+  position:fixed; bottom:20px; right:20px; z-index:110;
+  background:var(--s3); border:1px solid var(--cyan);
+  border-radius:10px; padding:14px 20px; max-width:320px;
+  box-shadow:var(--glow); transform:translateY(100px); opacity:0;
+  transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  font-size:12px; color:var(--ink); pointer-events:none;
+}
+#toast.visible { transform:translateY(0); opacity:1; }
+#toast.err { border-color:var(--rose); }
+</style>
+</head>
+<body>
+
+<div id="orbs">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+</div>
+
+<div id="app">
+
+  <!-- ── TOPBAR ────────────────────────────────────────────────────────────── -->
+  <header id="topbar">
+    <span class="wordmark">Monét</span>
+    <span class="algo-chip">Manual Trade</span>
+    <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
+      <a href="index.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Terminal</a>
+      <a href="trade.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Trade</a>
+      <a href="crypto-prices.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Crypto Prices</a>
+      <a href="model.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Model</a>
+      <a href="settings.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Settings</a>
+    </div>
+    <div id="topbar-right">
+      <button id="theme-toggle" title="Toggle theme">
+        <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── MAIN GRID ───────────────────────────────────────────────────────────── -->
+  <div class="main-grid">
+    
+    <!-- Left panel: trade form -->
+    <section class="panel">
+      <h2 class="panel-title">Execute Order</h2>
+      
+      <div class="side-selector">
+        <button class="side-btn buy active" id="btn-side-buy">BUY</button>
+        <button class="side-btn sell" id="btn-side-sell">SELL</button>
+      </div>
+
+      <div class="field">
+        <label class="field-lbl">Asset Symbol</label>
+        <select class="field-input" id="trade-symbol-select">
+          <option value="btc">BTC (Bitcoin)</option>
+          <option value="eth">ETH (Ethereum)</option>
+          <option value="sol">SOL (Solana)</option>
+          <option value="ada">ADA (Cardano)</option>
+          <option value="dot">DOT (Polkadot)</option>
+          <option value="link">LINK (Chainlink)</option>
+          <option value="doge">DOGE (Dogecoin)</option>
+        </select>
+      </div>
+
+      <div class="price-display">
+        <span id="price-lbl">Market Price:</span>
+        <span id="price-val">$0.00</span>
+      </div>
+
+      <div class="field">
+        <label class="field-lbl" id="amount-input-lbl">Spend Amount (USD)</label>
+        <input class="field-input" type="number" id="trade-amount-input" step="any" placeholder="0.00" autocomplete="off"/>
+      </div>
+
+      <div class="pct-buttons">
+        <button class="pct-btn" data-pct="25">25%</button>
+        <button class="pct-btn" data-pct="50">50%</button>
+        <button class="pct-btn" data-pct="75">75%</button>
+        <button class="pct-btn" data-pct="100">100%</button>
+      </div>
+
+      <div class="order-summary">
+        <div class="summary-row">
+          <span class="summary-lbl">Available Balance:</span>
+          <span class="summary-val" id="summary-avail">$0.00</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-lbl" id="summary-est-lbl">Estimated Quantity:</span>
+          <span class="summary-val" id="summary-est-qty">0.00</span>
+        </div>
+      </div>
+
+      <button class="btn-execute" id="btn-trade-execute">Place Buy Order</button>
+    </section>
+
+    <!-- Right panel: funds & simulation control -->
+    <section class="panel">
+      <h2 class="panel-title">Portfolio & Balance</h2>
+
+      <div class="balance-card">
+        <div class="balance-item">
+          <div>
+            <div class="bal-lbl">USD Balance</div>
+            <div class="bal-val" id="bal-usd">$0.00</div>
+          </div>
+          <div>
+            <div class="bal-lbl" id="bal-coin-lbl">BTC Holdings</div>
+            <div class="bal-val" id="bal-coin-qty">0.000000</div>
+            <div class="bal-sub" id="bal-coin-val">$0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="panel-title">Simulation Funding</h2>
+      
+      <div class="field">
+        <label class="field-lbl">Amount (USD)</label>
+        <div class="funds-form">
+          <input class="field-input" type="number" id="funds-amount-input" placeholder="1000.00" autocomplete="off"/>
+          <button class="funds-btn" id="btn-add-funds">Add Funds</button>
+          <button class="funds-btn" id="btn-remove-funds">Remove Funds</button>
+        </div>
+      </div>
+
+      <button class="reset-btn" id="btn-reset-portfolio">Reset Portfolio & Stats</button>
+    </section>
+
+  </div><!-- .main-grid -->
+
+  <!-- Bottom panel: recent trades -->
+  <section class="panel">
+    <h2 class="panel-title">Recent Manual Trades</h2>
+    <div style="overflow-x:auto;">
+      <table class="trades-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Asset</th>
+            <th>Price</th>
+            <th>Amount</th>
+            <th>Total Value</th>
+          </tr>
+        </thead>
+        <tbody id="trades-tbody">
+          <tr>
+            <td colspan="6" style="text-align:center;padding:24px;color:var(--ink4);">No manual trades executed in this session.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div><!-- #app -->
+
+<div id="toast">Order filled successfully.</div>
+
+<script>
+// State
+let selectedSide = 'BUY';
+let selectedSymbol = 'btc';
+let currentPrice = 0;
+let usdBalance = 0;
+let coinHoldings = 0;
+let allCoins = [];
+let manualTrades = [];
+
+const BASE = 'http://127.0.0.1:5678';
+
+// Theme persistence
+if (localStorage.getItem('theme') === 'light') {
+  document.documentElement.classList.add('light');
+}
+
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+});
+
+// Toast helper
+function showToast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = isErr ? 'err visible' : 'visible';
+  setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
+// Side Switcher
+const btnBuy = document.getElementById('btn-side-buy');
+const btnSell = document.getElementById('btn-side-sell');
+const inputAmtLbl = document.getElementById('amount-input-lbl');
+const execBtn = document.getElementById('btn-trade-execute');
+const summaryEstLbl = document.getElementById('summary-est-lbl');
+
+function updateSide(side) {
+  selectedSide = side;
+  if (side === 'BUY') {
+    btnBuy.classList.add('active');
+    btnSell.classList.remove('active');
+    inputAmtLbl.textContent = 'Spend Amount (USD)';
+    summaryEstLbl.textContent = 'Estimated Quantity:';
+    execBtn.className = 'btn-execute';
+    execBtn.textContent = 'Place Buy Order';
+  } else {
+    btnSell.classList.add('active');
+    btnBuy.classList.remove('active');
+    inputAmtLbl.textContent = `Quantity (${selectedSymbol.toUpperCase()})`;
+    summaryEstLbl.textContent = 'Estimated Proceeds:';
+    execBtn.className = 'btn-execute sell';
+    execBtn.textContent = 'Place Sell Order';
+  }
+  updateAvailLabel();
+  recalcSummary();
+}
+
+btnBuy.addEventListener('click', () => updateSide('BUY'));
+btnSell.addEventListener('click', () => updateSide('SELL'));
+
+// Fetch Prices and Status
+async function loadPrices() {
+  try {
+    const r = await fetch(`${BASE}/api/cmc/listings`);
+    if (r.ok) {
+      const { data } = await r.json();
+      allCoins = data;
+      updatePrice();
+    }
+  } catch (e) {}
+}
+
+function updatePrice() {
+  const symbolUpper = selectedSymbol.toUpperCase();
+  const coin = allCoins.find(c => c.symbol.toUpperCase() === symbolUpper);
+  if (coin && coin.quote && coin.quote.USD) {
+    currentPrice = coin.quote.USD.price || 0;
+    document.getElementById('price-val').textContent = '$' + currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+  } else {
+    currentPrice = 0;
+    document.getElementById('price-val').textContent = '$--';
+  }
+  recalcSummary();
+}
+
+document.getElementById('trade-symbol-select').addEventListener('change', e => {
+  selectedSymbol = e.target.value;
+  document.getElementById('bal-coin-lbl').textContent = `${selectedSymbol.toUpperCase()} Holdings`;
+  updateSide(selectedSide);
+  updatePrice();
+  syncBalance();
+});
+
+// Balance sync
+async function syncBalance() {
+  try {
+    const d = await (await fetch(`${BASE}/api/status`)).json();
+    usdBalance = d.usd || 0;
+    document.getElementById('bal-usd').textContent = '$' + usdBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    // Get symbol holdings
+    const holdingsAll = d.holdings_all || {};
+    coinHoldings = holdingsAll[selectedSymbol.toUpperCase()] || 0;
+    document.getElementById('bal-coin-qty').textContent = coinHoldings.toFixed(6);
+    
+    const holdingsVal = coinHoldings * currentPrice;
+    document.getElementById('bal-coin-val').textContent = '$' + holdingsVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    updateAvailLabel();
+  } catch (_) {}
+}
+
+function updateAvailLabel() {
+  if (selectedSide === 'BUY') {
+    document.getElementById('summary-avail').textContent = '$' + usdBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } else {
+    document.getElementById('summary-avail').textContent = `${coinHoldings.toFixed(6)} ${selectedSymbol.toUpperCase()}`;
+  }
+}
+
+// Percentage Buttons
+document.querySelectorAll('.pct-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const pct = parseFloat(btn.dataset.pct) / 100.0;
+    const input = document.getElementById('trade-amount-input');
+    if (selectedSide === 'BUY') {
+      input.value = (usdBalance * pct).toFixed(2);
+    } else {
+      input.value = (coinHoldings * pct).toFixed(6);
+    }
+    recalcSummary();
+  });
+});
+
+// Recalc
+const amountInput = document.getElementById('trade-amount-input');
+amountInput.addEventListener('input', recalcSummary);
+
+function recalcSummary() {
+  const val = parseFloat(amountInput.value) || 0;
+  const estQtyEl = document.getElementById('summary-est-qty');
+  if (selectedSide === 'BUY') {
+    if (currentPrice > 0) {
+      estQtyEl.textContent = (val / currentPrice).toFixed(6) + ` ${selectedSymbol.toUpperCase()}`;
+    } else {
+      estQtyEl.textContent = '0.00';
+    }
+  } else {
+    estQtyEl.textContent = '$' + (val * currentPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+}
+
+// Execute Trade
+document.getElementById('btn-trade-execute').addEventListener('click', async () => {
+  const amt = parseFloat(amountInput.value) || 0;
+  if (amt <= 0) {
+    showToast('Please enter a valid amount', true);
+    return;
+  }
+  
+  if (selectedSide === 'BUY' && amt > usdBalance) {
+    showToast('Insufficient USD balance', true);
+    return;
+  }
+  if (selectedSide === 'SELL' && amt > coinHoldings) {
+    showToast(`Insufficient ${selectedSymbol.toUpperCase()} holdings`, true);
+    return;
+  }
+
+  try {
+    const r = await fetch(`${BASE}/api/manual/trade`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        side: selectedSide,
+        symbol: selectedSymbol,
+        price: currentPrice,
+        amount: amt
+      })
+    });
+    
+    const d = await r.json();
+    if (r.ok) {
+      showToast(d.message);
+      amountInput.value = '';
+      recalcSummary();
+      
+      // Save recent manual trade record locally
+      const newTrade = {
+        time: new Date().toLocaleTimeString(),
+        side: selectedSide,
+        symbol: selectedSymbol.toUpperCase(),
+        price: currentPrice,
+        amount: selectedSide === 'BUY' ? (amt / currentPrice) : amt,
+        total: selectedSide === 'BUY' ? amt : (amt * currentPrice)
+      };
+      manualTrades.push(newTrade);
+      renderRecentTrades();
+      
+      syncBalance();
+    } else {
+      showToast(d.error || 'Execution failed', true);
+    }
+  } catch (e) {
+    showToast('Error executing order', true);
+  }
+});
+
+// Funding Control
+document.getElementById('btn-add-funds').addEventListener('click', () => handleFunds('add'));
+document.getElementById('btn-remove-funds').addEventListener('click', () => handleFunds('remove'));
+
+async function handleFunds(action) {
+  const input = document.getElementById('funds-amount-input');
+  const val = parseFloat(input.value) || 0;
+  if (val <= 0) {
+    showToast('Please enter a valid amount', true);
+    return;
+  }
+
+  try {
+    const r = await fetch(`${BASE}/api/manual/funds`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, amount: val })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      showToast(d.message);
+      input.value = '';
+      syncBalance();
+    } else {
+      showToast(d.error || 'Action failed', true);
+    }
+  } catch (e) {
+    showToast('Error updating balance', true);
+  }
+}
+
+// Reset Portfolio
+document.getElementById('btn-reset-portfolio').addEventListener('click', async () => {
+  if (!confirm('Are you sure you want to reset your simulated portfolio? This will liquidate all holdings and reset all statistics.')) {
+    return;
+  }
+  
+  try {
+    const r = await fetch(`${BASE}/api/manual/reset`, { method: 'POST' });
+    const d = await r.json();
+    if (r.ok) {
+      showToast(d.message);
+      syncBalance();
+    } else {
+      showToast('Reset failed', true);
+    }
+  } catch (e) {
+    showToast('Error resetting portfolio', true);
+  }
+});
+
+// Render Recent Trades
+function renderRecentTrades() {
+  const tb = document.getElementById('trades-tbody');
+  if (manualTrades.length === 0) {
+    tb.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink4);">No manual trades executed in this session.</td></tr>`;
+    return;
+  }
+  tb.innerHTML = manualTrades.map(t => {
+    return `<tr>
+      <td>${t.time}</td>
+      <td><span class="side-badge ${t.side.toLowerCase()}">${t.side}</span></td>
+      <td>${t.symbol}</td>
+      <td>$${t.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+      <td>${t.amount.toFixed(6)}</td>
+      <td>$${t.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Init
+(async function init() {
+  await loadPrices();
+  await syncBalance();
+  
+  // Refresh price feeds and sync balances
+  setInterval(async () => {
+    await loadPrices();
+    await syncBalance();
+  }, 10000);
+})();
+</script>
+</body>
+</html>

@@ -766,6 +766,7 @@ def get_status():
         "bandwidth":       state["bandwidth"],
         "usd":             usd,
         "holdings":        holdings,
+        "holdings_all":    state["portfolio"]["holdings"],
         "net_worth":       net_worth,
         "pnl_usd":         pnl_usd,
         "pnl_pct":         pnl_pct,
@@ -930,6 +931,113 @@ def get_cmc_listings():
     except Exception as e:
         log(f"Error fetching listings from CMC: {e}")
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/manual/trade", methods=["POST"])
+def manual_trade():
+    body = request.get_json() or {}
+    side = body.get("side", "").upper()
+    symbol = body.get("symbol", "").upper()
+    price = float(body.get("price", 0.0))
+    amount = float(body.get("amount", 0.0))
+    
+    if side not in ["BUY", "SELL"] or not symbol or price <= 0 or amount <= 0:
+        return jsonify({"error": "Invalid trade parameters"}), 400
+        
+    portfolio = state["portfolio"]
+    if side == "BUY":
+        if amount > portfolio["USD"]:
+            return jsonify({"error": f"Insufficient USD balance (${portfolio['USD']:.2f})"}), 400
+        qty = amount / price
+        portfolio["USD"] -= amount
+        
+        prev_holdings = portfolio["holdings"].get(symbol, 0.0)
+        portfolio["holdings"][symbol] = prev_holdings + qty
+        
+        # update average buy price for main symbol
+        if symbol == state["symbol"]:
+            prev_avg = state["avg_buy_price"] or price
+            if prev_holdings > 0:
+                state["avg_buy_price"] = ((prev_avg * prev_holdings) + (price * qty)) / (prev_holdings + qty)
+            else:
+                state["avg_buy_price"] = price
+                
+        state["total_trades"] += 1
+        state["total_buys"] += 1
+        
+        msg = f"Manual BUY: {qty:.6f} {symbol} @ ${price:,.2f} for ${amount:,.2f}"
+        log(f"Execution: {msg}")
+        return jsonify({"status": "success", "message": msg})
+        
+    elif side == "SELL":
+        owned = portfolio["holdings"].get(symbol, 0.0)
+        if amount > owned:
+            return jsonify({"error": f"Insufficient holdings for {symbol} ({owned:.6f})"}), 400
+            
+        proceeds = amount * price
+        portfolio["USD"] += proceeds
+        portfolio["holdings"][symbol] = owned - amount
+        
+        pnl_str = ""
+        if symbol == state["symbol"] and state["avg_buy_price"]:
+            pnl = ((price - state["avg_buy_price"]) / state["avg_buy_price"]) * 100.0
+            pnl_str = f" | PnL: {pnl:+.2f}%"
+            
+        if portfolio["holdings"][symbol] < 1e-8:
+            portfolio["holdings"][symbol] = 0.0
+            if symbol == state["symbol"]:
+                state["avg_buy_price"] = None
+                
+        state["total_trades"] += 1
+        state["total_sells"] += 1
+        
+        msg = f"Manual SELL: {amount:.6f} {symbol} @ ${price:,.2f} for ${proceeds:,.2f}{pnl_str}"
+        log(f"Execution: {msg}")
+        return jsonify({"status": "success", "message": msg})
+
+@app.route("/api/manual/funds", methods=["POST"])
+def manage_funds():
+    body = request.get_json() or {}
+    action = body.get("action", "")
+    amount = float(body.get("amount", 0.0))
+    
+    if action not in ["add", "remove"] or amount <= 0:
+        return jsonify({"error": "Invalid funds parameters"}), 400
+        
+    portfolio = state["portfolio"]
+    if action == "add":
+        portfolio["USD"] += amount
+        state["starting_wallet"] = state.get("starting_wallet", 10000.0) + amount
+        msg = f"Manually added ${amount:,.2f} USD to portfolio balance."
+        log(f"System: {msg}")
+        return jsonify({"status": "success", "message": msg})
+    elif action == "remove":
+        to_remove = min(amount, portfolio["USD"])
+        portfolio["USD"] -= to_remove
+        state["starting_wallet"] = max(0.0, state.get("starting_wallet", 10000.0) - to_remove)
+        msg = f"Manually removed ${to_remove:,.2f} USD from portfolio balance."
+        log(f"System: {msg}")
+        return jsonify({"status": "success", "message": msg})
+
+@app.route("/api/manual/reset", methods=["POST"])
+def reset_portfolio_endpoint():
+    starting = state.get("starting_wallet", 10000.0)
+    state["portfolio"] = {"USD": starting, "holdings": {}}
+    state["avg_buy_price"] = None
+    state["total_trades"] = 0
+    state["total_buys"] = 0
+    state["total_sells"] = 0
+    state["stop_losses_hit"] = 0
+    msg = "Portfolio and trade statistics manually reset."
+    log(f"System: {msg}")
+    return jsonify({"status": "success", "message": msg})
+
+@app.route("/api/log", methods=["POST"])
+def post_log():
+    body = request.get_json() or {}
+    message = body.get("message", "")
+    if message:
+        log(message)
+    return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
     load_config()
