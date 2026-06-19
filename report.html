@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Monet — Market Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Syne+Mono&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+
+:root {
+  --cyan:        #06b6d4;
+  --cyan-glow:   rgba(6,182,212,0.15);
+  --green:       #10b981;
+  --green-glow:  rgba(16,185,129,0.15);
+  --rose:        #f43f5e;
+  --rose-glow:   rgba(244,63,94,0.15);
+  --violet:      #8b5cf6;
+  --violet-glow: rgba(139,92,246,0.15);
+  --amber:       #f59e0b;
+  --amber-glow:  rgba(245,158,11,0.15);
+  --bg:          #030712;
+  --s1:          rgba(17,24,39,0.7);
+  --s2:          rgba(17,24,39,0.45);
+  --s3:          rgba(10,15,30,0.8);
+  --border:      rgba(255,255,255,0.06);
+  --border2:     rgba(255,255,255,0.12);
+  --ink:         #f9fafb;
+  --ink2:        #e5e7eb;
+  --ink3:        #9ca3af;
+  --ink4:        #4b5563;
+  --sans:        'Syne', sans-serif;
+  --mono:        'Syne Mono', monospace;
+  --serif:       'Cormorant Garamond', serif;
+  --r:           16px;
+  --r-sm:        10px;
+  --glow:        0 8px 32px 0 rgba(0,0,0,0.37);
+  --transition:  all 0.3s cubic-bezier(0.25,0.8,0.25,1);
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(--sans); color:var(--ink); -webkit-font-smoothing:antialiased; }
+
+#orbs { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.orb { position:absolute; border-radius:50%; filter:blur(120px); mix-blend-mode:screen; will-change:transform; opacity:0.8; }
+.orb-a { width:650px;height:650px;background:radial-gradient(circle,rgba(6,182,212,0.35) 0%,transparent 70%);top:-150px;left:-100px;animation:oa 25s ease-in-out infinite; }
+.orb-b { width:550px;height:550px;background:radial-gradient(circle,rgba(139,92,246,0.3) 0%,transparent 70%);bottom:-80px;right:-80px;animation:ob 28s ease-in-out infinite; }
+.orb-c { width:420px;height:420px;background:radial-gradient(circle,rgba(16,185,129,0.2) 0%,transparent 70%);top:35%;left:40%;animation:oc 22s ease-in-out infinite; }
+@keyframes oa { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,70px)} }
+@keyframes ob { 0%,100%{transform:translate(0,0)} 40%{transform:translate(-60px,-50px)} 70%{transform:translate(30px,20px)} }
+@keyframes oc { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,40px) scale(1.1)} }
+#orbs::after { content:''; position:absolute;inset:0; background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px); background-size:48px 48px; }
+
+#app { position:relative; z-index:10; max-width:1400px; margin:0 auto; padding:24px 20px 48px; }
+
+#topbar {
+  display:flex; align-items:center; gap:16px; margin-bottom:32px;
+  padding:12px 20px;
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r); backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  position:relative; overflow:hidden;
+  -webkit-app-region: drag;
+}
+#topbar::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
+.wordmark {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html.light .wordmark {
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
+#topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region: no-drag; }
+.nav-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink3);
+  padding: 4px 0 2px;
+  transition: color 0.25s, border-color 0.25s;
+  border-bottom: 2px solid transparent;
+}
+.nav-link:hover { color: var(--ink) !important; border-bottom-color: rgba(255,255,255,0.15); }
+.nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); font-weight: 700; }
+
+#live-badge { display:flex; align-items:center; gap:7px; padding:6px 14px; border-radius:30px; border:1px solid rgba(16,185,129,0.35); background:var(--green-glow); font-family:var(--mono); font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--green); }
+.l-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 10px var(--green); animation:sdot 2s ease-in-out infinite; }
+@keyframes sdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.7)} }
+#last-update { font-family:var(--mono); font-size:9px; color:var(--ink4); letter-spacing:0.5px; }
+
+.panel {
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  position:relative;
+  overflow:hidden;
+  box-shadow: var(--glow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 24px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.panel:hover { border-color: var(--border2); }
+.panel::after { content:''; position:absolute; top:0; left:12px; right:12px; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); z-index:2; }
+.panel > * { position:relative; z-index:1; }
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.full-width { grid-column: 1 / -1; }
+
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.metric-item { text-align: center; }
+.metric-label { font-family:var(--mono); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink3); margin-bottom:4px; }
+.metric-value { font-family:var(--mono); font-size:13px; font-weight:600; }
+.metric-value.pos { color:var(--green); }
+.metric-value.neg { color:var(--rose); }
+.metric-value.neu { color:var(--cyan); }
+.metric-value.muted { color:var(--ink2); }
+
+.divider { height:1px; background:var(--border); margin:12px 0; }
+
+.stat-row { display:flex; justify-content:space-between; align-items:center; }
+.stat-label { font-family:var(--mono); font-size:9px; color:var(--ink3); }
+.stat-val { font-family:var(--mono); font-size:11px; color:var(--ink2); }
+.stat-val.pos { color:var(--green); }
+.stat-val.neg { color:var(--rose); }
+
+.sentiment-bar-wrap { height:8px; border-radius:4px; overflow:hidden; background:var(--s2); display:flex; }
+.sentiment-bullish { height:100%; transition:width 0.6s ease; }
+.sentiment-bearish { height:100%; transition:width 0.6s ease; }
+
+.coin-row {
+  display:flex; align-items:center; gap:10px;
+  padding: 8px 0;
+}
+.coin-row + .coin-row { border-top:1px solid var(--border); }
+.coin-rank { font-family:var(--mono); font-size:9px; color:var(--ink4); width:20px; }
+.coin-info { flex:1; }
+.coin-symbol { font-family:var(--mono); font-size:11px; color:var(--ink); }
+.coin-name { font-family:var(--mono); font-size:8px; color:var(--ink3); }
+.coin-price { font-family:var(--mono); font-size:11px; color:var(--ink2); text-align:right; }
+.coin-change { font-family:var(--mono); font-size:10px; text-align:right; min-width:60px; }
+.coin-pct { font-family:var(--mono); font-size:9px; color:var(--ink3); text-align:right; min-width:40px; }
+
+.health-score-wrap { display:flex; align-items:center; gap:16px; }
+.ring-gauge { position:relative; width:70px; height:70px; flex-shrink:0; }
+.ring-gauge svg { transform: rotate(-90deg); }
+.ring-bg { fill:none; stroke:rgba(255,255,255,0.06); stroke-width:6; }
+.ring-fg { fill:none; stroke-width:6; stroke-linecap:round; transition: stroke-dashoffset 0.8s ease, stroke 0.4s ease; }
+.ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:14px; font-weight:700; }
+
+/* Skeleton */
+.skel { background:rgba(255,255,255,0.05); border-radius:6px; animation:skel-pulse 1.5s ease-in-out infinite; display:inline-block; }
+@keyframes skel-pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+.skel-row { display:flex; gap:12px; margin-bottom:12px; }
+
+@media (max-width:900px) {
+  .report-grid { grid-template-columns:1fr; }
+  .metric-row { grid-template-columns:repeat(3,1fr); }
+}
+
+html.is-mac #app { padding-top: 12px !important; }
+html.is-mac #topbar { padding-left: 80px !important; }
+
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:6px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.15); }
+
+</style>
+<script>
+  if ((window.APP_CONFIG && window.APP_CONFIG.platform === 'darwin') || navigator.userAgent.indexOf('Mac') !== -1) {
+    document.documentElement.classList.add('is-mac');
+  }
+</script>
+</head>
+<body>
+
+<div id="orbs">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+</div>
+
+<div id="app">
+
+  <header id="topbar">
+    <span class="wordmark">Mon&eacute;t</span>
+    <span class="algo-chip">Market Report</span>
+    <div id="nav-links" style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;"></div>
+    <div id="topbar-right">
+      <div id="live-badge">
+        <div class="l-dot"></div>
+        <span>Live</span>
+      </div>
+      <div id="last-update">&ndash;</div>
+    </div>
+  </header>
+
+  <div id="report-content">
+
+    <!-- Header -->
+    <div class="panel" style="text-align:center; margin-bottom:24px;">
+      <h2 style="font-family:var(--serif); font-size:26px; font-weight:400; margin-bottom:4px;">MARKET ANALYSIS REPORT</h2>
+      <div id="report-date" style="font-family:var(--mono); font-size:9px; color:var(--ink3); margin-bottom:4px;">&ndash;</div>
+      <div id="report-count" style="font-family:var(--mono); font-size:9px; color:var(--ink3);">&ndash;</div>
+    </div>
+
+    <div class="report-grid">
+
+      <!-- Market Summary -->
+      <div class="panel full-width" id="sec-summary">
+        <div class="section-label">MARKET SUMMARY</div>
+        <div id="summary-skel">
+          <div class="skel-row"><div class="skel" style="height:40px;flex:1"></div></div>
+          <div class="skel-row"><div class="skel" style="height:14px;flex:1"></div></div>
+        </div>
+        <div id="summary-content" style="display:none;">
+          <div class="metric-row" id="summary-metrics"></div>
+          <div class="divider"></div>
+          <div class="metric-row" id="summary-counts"></div>
+          <div class="divider"></div>
+          <div id="summary-performers"></div>
+        </div>
+      </div>
+
+      <!-- Sentiment Analysis -->
+      <div class="panel full-width" id="sec-sentiment">
+        <div class="section-label">MARKET SENTIMENT</div>
+        <div id="sentiment-skel">
+          <div class="skel-row"><div class="skel" style="height:8px;flex:1"></div></div>
+          <div class="skel-row"><div class="skel" style="height:14px;flex:1"></div></div>
+        </div>
+        <div id="sentiment-content" style="display:none;">
+          <div class="sentiment-bar-wrap" id="sentiment-bar"></div>
+          <div class="metric-row" style="margin-top:8px;" id="sentiment-pcts"></div>
+          <div class="divider"></div>
+          <div class="metric-row" id="sentiment-stats"></div>
+          <div style="margin-top:8px;">
+            <p id="sentiment-text" style="font-family:var(--mono); font-size:9px; color:var(--ink3); line-height:1.5;"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Gainers -->
+      <div class="panel" id="sec-gainers">
+        <div class="section-label">TOP GAINERS (24H)</div>
+        <div id="gainers-skel">
+          <div class="skel-row"><div class="skel" style="height:30px;flex:1"></div></div>
+          <div class="skel-row"><div class="skel" style="height:30px;flex:1"></div></div>
+        </div>
+        <div id="gainers-content" style="display:none;"></div>
+      </div>
+
+      <!-- Top Losers -->
+      <div class="panel" id="sec-losers">
+        <div class="section-label">TOP LOSERS (24H)</div>
+        <div id="losers-skel">
+          <div class="skel-row"><div class="skel" style="height:30px;flex:1"></div></div>
+          <div class="skel-row"><div class="skel" style="height:30px;flex:1"></div></div>
+        </div>
+        <div id="losers-content" style="display:none;"></div>
+      </div>
+
+      <!-- Volume Leaders -->
+      <div class="panel" id="sec-volume">
+        <div class="section-label">VOLUME LEADERS (24H)</div>
+        <div id="volume-skel">
+          <div class="skel-row"><div class="skel" style="height:30px;flex:1"></div></div>
+          <div class="skel-row"><div class="skel" style="height:30px;flex:1"></div></div>
+        </div>
+        <div id="volume-content" style="display:none;"></div>
+      </div>
+
+      <!-- Market Cap Distribution -->
+      <div class="panel" id="sec-cap">
+        <div class="section-label">MARKET CAP DISTRIBUTION</div>
+        <div id="cap-skel">
+          <div class="skel-row"><div class="skel" style="height:20px;flex:1"></div></div>
+          <div class="skel-row"><div class="skel" style="height:20px;flex:1"></div></div>
+        </div>
+        <div id="cap-content" style="display:none;"></div>
+      </div>
+
+      <!-- Price Watch -->
+      <div class="panel" id="sec-pricewatch">
+        <div class="section-label">PRICE WATCH</div>
+        <div id="pricewatch-skel">
+          <div class="skel-row"><div class="skel" style="height:20px;flex:1"></div></div>
+        </div>
+        <div id="pricewatch-content" style="display:none;"></div>
+      </div>
+
+      <!-- Market Health -->
+      <div class="panel full-width" id="sec-health">
+        <div class="section-label">MARKET HEALTH</div>
+        <div id="health-skel">
+          <div class="skel-row"><div class="skel" style="height:70px;width:70px;border-radius:50%"></div></div>
+        </div>
+        <div id="health-content" style="display:none;">
+          <div class="health-score-wrap">
+            <div class="ring-gauge" id="health-ring">
+              <svg width="70" height="70" viewBox="0 0 70 70">
+                <circle class="ring-bg" cx="35" cy="35" r="28"/>
+                <circle class="ring-fg" id="health-ring-fg" cx="35" cy="35" r="28"
+                  stroke="var(--green)" stroke-dasharray="176" stroke-dashoffset="176"/>
+              </svg>
+              <div class="ring-label" id="health-score-text">0</div>
+            </div>
+            <div>
+              <div style="font-family:var(--mono); font-size:9px; color:var(--ink3); margin-bottom:4px;">Market Health Score</div>
+              <div style="font-family:var(--mono); font-size:20px; font-weight:700;" id="health-score-label">0/100</div>
+              <div style="font-family:var(--mono); font-size:10px;" id="health-status"></div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <p id="health-narrative" style="font-family:var(--mono); font-size:9px; color:var(--ink3); line-height:1.5;"></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="currency.js"></script>
+<script src="nav.js"></script>
+<script>
+const BASE = (window.APP_CONFIG && window.APP_CONFIG.backendUrl) || 'http://127.0.0.1:5678';
+
+let coins = [];
+
+function showSkel(parent) {
+  parent.querySelectorAll('[id$=-skel]').forEach(s => s.style.display = '');
+  parent.querySelectorAll('[id$=-content]').forEach(c => c.style.display = 'none');
+}
+
+function showContent(parent) {
+  parent.querySelectorAll('[id$=-skel]').forEach(s => s.style.display = 'none');
+  parent.querySelectorAll('[id$=-content]').forEach(c => c.style.display = '');
+}
+
+function $(id) { return document.getElementById(id); }
+
+function renderReport() {
+  if (!coins.length) return;
+  showContent(document.getElementById('report-content'));
+
+  const total = coins.length;
+  const totalCap = coins.reduce((s, c) => s + (c.marketCap || 0), 0);
+  const totalVol = coins.reduce((s, c) => s + (c.volume24h || 0), 0);
+  const avgChange = coins.reduce((s, c) => s + (c.change24h || 0), 0) / total;
+  const gainers = coins.filter(c => (c.change24h || 0) > 0);
+  const losers = coins.filter(c => (c.change24h || 0) < 0);
+  const flat = total - gainers.length - losers.length;
+  const bullishPct = (gainers.length / total) * 100;
+  const bearishPct = (losers.length / total) * 100;
+  const topGainer = coins.reduce((best, c) => (c.change24h || 0) > (best?.change24h || -Infinity) ? c : best, null);
+  const topLoser = coins.reduce((worst, c) => (c.change24h || 0) < (worst?.change24h || Infinity) ? c : worst, null);
+
+  const now = new Date();
+  $('report-date').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + now.toLocaleTimeString('en-US');
+  $('report-count').textContent = total + ' assets tracked';
+  $('last-update').textContent = now.toLocaleTimeString('en-US');
+
+  // Market Summary
+  $('summary-metrics').innerHTML = `
+    <div class="metric-item"><div class="metric-label">Total Market Cap</div><div class="metric-value muted">${formatLargeCurrency(totalCap)}</div></div>
+    <div class="metric-item"><div class="metric-label">24h Volume</div><div class="metric-value muted">${formatLargeCurrency(totalVol)}</div></div>
+    <div class="metric-item"><div class="metric-label">Avg Change</div><div class="metric-value ${avgChange >= 0 ? 'pos' : 'neg'}">${formatChange(avgChange)}</div></div>
+  `;
+  $('summary-counts').innerHTML = `
+    <div class="metric-item"><div class="metric-label">Gainers</div><div class="metric-value pos">${gainers.length}</div></div>
+    <div class="metric-item"><div class="metric-label">Losers</div><div class="metric-value neg">${losers.length}</div></div>
+    <div class="metric-item"><div class="metric-label">Flat</div><div class="metric-value muted">${flat}</div></div>
+  `;
+  let performersHtml = '';
+  if (topGainer) {
+    performersHtml += `<div class="stat-row"><span class="stat-label">Best Performer:</span><span><span class="stat-val" style="color:var(--ink2);font-size:11px;">${topGainer.symbol}</span> <span class="stat-val pos">${formatChange(topGainer.change24h)}</span></span></div>`;
+  }
+  if (topLoser) {
+    performersHtml += `<div class="stat-row"><span class="stat-label">Worst Performer:</span><span><span class="stat-val" style="color:var(--ink2);font-size:11px;">${topLoser.symbol}</span> <span class="stat-val neg">${formatChange(topLoser.change24h)}</span></span></div>`;
+  }
+  $('summary-performers').innerHTML = performersHtml;
+
+  // Sentiment
+  $('sentiment-bar').innerHTML = `
+    <div class="sentiment-bullish" style="width:${bullishPct}%;background:linear-gradient(90deg,var(--green),rgba(16,185,129,0.5));"></div>
+    <div class="sentiment-bearish" style="width:${bearishPct}%;background:linear-gradient(90deg,var(--rose),rgba(244,63,94,0.3));"></div>
+  `;
+  $('sentiment-pcts').innerHTML = `
+    <div class="metric-item"><div class="metric-label">Bullish</div><div class="metric-value pos">${bullishPct.toFixed(0)}%</div></div>
+    <div class="metric-item"><div class="metric-label">Bearish</div><div class="metric-value neg">${bearishPct.toFixed(0)}%</div></div>
+    <div class="metric-item"></div>
+  `;
+  const avgGainer = gainers.length ? gainers.reduce((s, c) => s + (c.change24h || 0), 0) / gainers.length : 0;
+  const avgLoser = losers.length ? losers.reduce((s, c) => s + (c.change24h || 0), 0) / losers.length : 0;
+  $('sentiment-stats').innerHTML = `
+    <div class="metric-item"><div class="metric-label">Avg Gainer</div><div class="metric-value pos">${formatChange(avgGainer)}</div></div>
+    <div class="metric-item"><div class="metric-label">Avg Loser</div><div class="metric-value neg">${formatChange(avgLoser)}</div></div>
+    <div class="metric-item"><div class="metric-label">Spread</div><div class="metric-value neu">${(avgGainer - avgLoser).toFixed(2)}</div></div>
+  `;
+  let sentimentText = '';
+  if (bullishPct > 65) sentimentText = 'Strongly Bullish \u2014 broad market participation with most assets in positive territory.';
+  else if (bullishPct > 55) sentimentText = 'Mildly Bullish \u2014 more gainers than losers, indicating positive momentum.';
+  else if (bearishPct > 65) sentimentText = 'Strongly Bearish \u2014 broad sell-off across the market.';
+  else if (bearishPct > 55) sentimentText = 'Mildly Bearish \u2014 more losers than gainers, caution advised.';
+  else sentimentText = 'Mixed \u2014 gains and losses are relatively balanced. Market is indecisive.';
+  $('sentiment-text').textContent = sentimentText;
+
+  // Top Gainers
+  const top5Gainers = [...coins].filter(c => (c.change24h || 0) > 0).sort((a, b) => (b.change24h || 0) - (a.change24h || 0)).slice(0, 5);
+  $('gainers-content').innerHTML = top5Gainers.length ? top5Gainers.map((c, i) => `
+    <div class="coin-row">
+      <span class="coin-rank">#${i + 1}</span>
+      <div class="coin-info"><div class="coin-symbol">${c.symbol}</div><div class="coin-name">${c.name}</div></div>
+      <div class="coin-price">${formatCurrency(c.price, c.price < 1 ? 4 : 2)}</div>
+      <div class="coin-change pos">${formatChange(c.change24h)}</div>
+    </div>
+  `).join('') : '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">No gainers in this period</div>';
+
+  // Top Losers
+  const top5Losers = [...coins].filter(c => (c.change24h || 0) < 0).sort((a, b) => (a.change24h || 0) - (b.change24h || 0)).slice(0, 5);
+  $('losers-content').innerHTML = top5Losers.length ? top5Losers.map((c, i) => `
+    <div class="coin-row">
+      <span class="coin-rank">#${i + 1}</span>
+      <div class="coin-info"><div class="coin-symbol">${c.symbol}</div><div class="coin-name">${c.name}</div></div>
+      <div class="coin-price">${formatCurrency(c.price, c.price < 1 ? 4 : 2)}</div>
+      <div class="coin-change neg">${formatChange(c.change24h)}</div>
+    </div>
+  `).join('') : '<div style="font-family:var(--mono);font-size:9px;color:var(--ink3);">No losers in this period</div>';
+
+  // Volume Leaders
+  const top5Vol = [...coins].sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0)).slice(0, 5);
+  $('volume-content').innerHTML = top5Vol.map((c, i) => `
+    <div class="coin-row">
+      <span class="coin-rank">#${i + 1}</span>
+      <div class="coin-info"><div class="coin-symbol">${c.symbol}</div><div class="coin-name">${c.name}</div></div>
+      <div style="flex:1;text-align:right;">
+        <div class="coin-price">${formatLargeCurrency(c.volume24h * 1e6)}</div>
+        <div class="coin-pct">${totalVol > 0 ? ((c.volume24h / totalVol) * 100).toFixed(1) : 0}% share</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Market Cap Distribution
+  const byCap = [...coins].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+  let capHtml = '';
+  if (byCap.length) {
+    const btc = byCap[0];
+    const btcDom = totalCap > 0 ? ((btc.marketCap || 0) / totalCap) * 100 : 0;
+    capHtml += `<div class="stat-row"><span class="stat-label">BTC Dominance</span><span class="stat-val" style="color:var(--cyan);">${btcDom.toFixed(1)}%</span></div>`;
+    if (byCap.length >= 2) {
+      const top10Cap = byCap.slice(0, 10).reduce((s, c) => s + (c.marketCap || 0), 0);
+      const top10Conc = totalCap > 0 ? (top10Cap / totalCap) * 100 : 0;
+      capHtml += `<div class="stat-row"><span class="stat-label">Top 10 Concentration</span><span class="stat-val" style="color:var(--amber);">${top10Conc.toFixed(1)}%</span></div>`;
+    }
+    capHtml += `<div class="divider"></div>`;
+    byCap.slice(0, 3).forEach((c, i) => {
+      const pct = totalCap > 0 ? ((c.marketCap || 0) / totalCap) * 100 : 0;
+      capHtml += `<div class="coin-row">
+        <span class="coin-rank">#${i + 1}</span>
+        <div class="coin-info"><div class="coin-symbol">${c.symbol}</div></div>
+        <div class="coin-price">${formatLargeCurrency(c.marketCap)}</div>
+        <div class="coin-pct">${pct.toFixed(1)}%</div>
+      </div>`;
+    });
+  }
+  $('cap-content').innerHTML = capHtml;
+
+  // Price Watch
+  const sortedByPrice = [...coins].filter(c => (c.price || 0) > 0).sort((a, b) => (b.price || 0) - (a.price || 0));
+  let pwHtml = '<div class="metric-row">';
+  if (sortedByPrice.length) {
+    const highest = sortedByPrice[0];
+    const lowest = sortedByPrice[sortedByPrice.length - 1];
+    pwHtml += `
+      <div class="metric-item"><div class="metric-label">Highest Price</div><div class="metric-value muted" style="font-size:11px;">${highest.symbol}</div><div class="metric-value pos">${formatCurrency(highest.price)}</div></div>
+      <div class="metric-item"><div class="metric-label">Lowest Price</div><div class="metric-value muted" style="font-size:11px;">${lowest.symbol}</div><div class="metric-value neg">${formatCurrency(lowest.price, 4)}</div></div>
+    `;
+    if (sortedByPrice.length >= 3) {
+      const meanPrice = sortedByPrice.reduce((s, c) => s + (c.price || 0), 0) / sortedByPrice.length;
+      const medianPrice = sortedByPrice[Math.floor(sortedByPrice.length / 2)].price;
+      const range = (highest.price || 0) - (lowest.price || 0);
+      pwHtml += `<div class="metric-item"><div class="metric-label">Range</div><div class="metric-value neu">${formatCurrency(range)}</div></div>`;
+    }
+  }
+  pwHtml += '</div>';
+  $('pricewatch-content').innerHTML = pwHtml;
+
+  // Market Health
+  const healthScore = computeHealthScore(bullishPct, avgChange, totalVol / (totalCap || 1), total);
+  const circumference = 2 * Math.PI * 28;
+  const offset = circumference - (healthScore / 100) * circumference;
+  const fg = $('health-ring-fg');
+  fg.style.strokeDasharray = circumference;
+  fg.style.strokeDashoffset = offset;
+  fg.style.stroke = healthColor(healthScore);
+  $('health-score-text').textContent = Math.round(healthScore);
+  $('health-score-text').style.color = healthColor(healthScore);
+  $('health-score-label').textContent = Math.round(healthScore) + '/100';
+  $('health-score-label').style.color = healthColor(healthScore);
+  $('health-status').textContent = healthLabel(healthScore);
+  $('health-status').style.color = healthColor(healthScore);
+  $('health-narrative').textContent = marketSummaryText(bullishPct, avgChange, gainers.length, losers.length, totalVol, totalVol / (totalCap || 1));
+}
+
+function computeHealthScore(bullishPct, avgChange, volToCapRatio, totalAssets) {
+  let score = 50;
+  score += (bullishPct - 50) * 0.6;
+  score += Math.max(-15, Math.min(15, avgChange * 3));
+  if (volToCapRatio > 0.05) score += 10;
+  else if (volToCapRatio > 0.02) score += 5;
+  if (totalAssets >= 20) score += 15;
+  else if (totalAssets >= 10) score += 10;
+  else if (totalAssets >= 5) score += 5;
+  return Math.max(0, Math.min(100, score));
+}
+
+function healthColor(score) {
+  if (score >= 65) return 'var(--green)';
+  if (score >= 40) return 'var(--amber)';
+  return 'var(--rose)';
+}
+
+function healthLabel(score) {
+  if (score >= 75) return 'Excellent';
+  if (score >= 65) return 'Good';
+  if (score >= 50) return 'Fair';
+  if (score >= 40) return 'Cautious';
+  return 'Elevated Risk';
+}
+
+function marketSummaryText(bullishPct, avgChange, gainersCount, losersCount, totalVol, volToCapRatio) {
+  const parts = [];
+  if (bullishPct > 60) {
+    parts.push('The market is predominantly bullish with ' + bullishPct.toFixed(0) + '% of assets in positive territory.');
+  } else if (losersCount > gainersCount) {
+    parts.push('Bearish sentiment dominates with ' + (100 - bullishPct).toFixed(0) + '% of assets declining.');
+  } else {
+    parts.push('Market sentiment is mixed with ' + gainersCount + ' gainers and ' + losersCount + ' losers.');
+  }
+  const absAvg = Math.abs(avgChange);
+  if (absAvg > 3) {
+    parts.push('The average movement of ' + formatChange(avgChange) + ' indicates significant ' + (avgChange > 0 ? 'upward' : 'downward') + ' momentum across the board.');
+  } else if (absAvg > 1) {
+    parts.push('Moderate price action with average change of ' + formatChange(avgChange) + '.');
+  } else {
+    parts.push('Price action is relatively subdued with average change of ' + formatChange(avgChange) + '.');
+  }
+  if (volToCapRatio > 0.05) {
+    parts.push('Trading volume is robust relative to market cap, suggesting strong participant engagement.');
+  } else if (volToCapRatio < 0.01) {
+    parts.push('Volume is relatively low compared to market cap \u2014 liquidity conditions warrant attention.');
+  }
+  return parts.join(' ');
+}
+
+async function fetchReport() {
+  try {
+    const r = await fetch(BASE + '/api/cmc/listings');
+    const data = await r.json();
+    coins = (data.data || []).map(c => ({
+      id: c.id,
+      symbol: c.symbol,
+      name: c.name,
+      price: c.quote?.USD?.price || 0,
+      change24h: c.quote?.USD?.percent_change_24h || 0,
+      marketCap: c.quote?.USD?.market_cap || 0,
+      volume24h: c.quote?.USD?.volume_24h || 0,
+    }));
+    renderReport();
+  } catch (e) {
+    console.error('Failed to fetch listings', e);
+  }
+}
+
+renderNav('report');
+showSkel(document.getElementById('report-content'));
+fetchReport();
+setInterval(fetchReport, 60000);
+</script>
+</body>
+</html>

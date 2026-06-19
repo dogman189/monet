@@ -166,10 +166,37 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); font
 #app { position:relative; z-index:10; width:100vw; height:100vh; display:grid; grid-template-columns:270px 1fr 240px; grid-template-rows:68px 1fr 1fr 180px; gap:12px; padding:12px; }
 
 #topbar { grid-column:1/-1; grid-row:1; display:flex; align-items:center; gap:12px; padding:0 8px; -webkit-app-region:drag; }
-.wordmark { font-family:var(--serif); font-size:26px; font-weight:300; letter-spacing:0.06em; color:var(--ink); }
+.wordmark {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+}
+html.light .wordmark {
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 .algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
 #topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region:no-drag; }
-.nav-link:hover { color: var(--ink) !important; }
+.nav-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink3);
+  padding: 4px 0 2px;
+  transition: color 0.25s, border-color 0.25s;
+  border-bottom: 2px solid transparent;
+}
+.nav-link:hover { color: var(--ink) !important; border-bottom-color: rgba(255,255,255,0.15); }
+.nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); font-weight: 700; }
 #status-pill { display:flex; align-items:center; gap:8px; padding:6px 14px; border-radius:30px; border:1px solid var(--border); background:var(--s2); font-family:var(--mono); font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink2); transition: var(--transition); }
 #status-pill.running { border-color:rgba(16,185,129,0.35); background:var(--green-glow); color:var(--green); }
 .s-dot { width:7px; height:7px; border-radius:50%; background:var(--ink3); flex-shrink:0; transition: var(--transition); }
@@ -371,13 +398,7 @@ html.is-mac #topbar {
   <header id="topbar">
     <span class="wordmark">Monét</span>
     <span class="algo-chip">algo · v1.0</span>
-    <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
-      <a href="index.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Terminal</a>
-      <a href="trade.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Trade</a>
-      <a href="crypto-prices.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Crypto Prices</a>
-      <a href="model.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Model</a>
-      <a href="settings.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Settings</a>
-    </div>
+    <div id="nav-links" style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;"></div>
     <div id="topbar-right">
       <div id="status-pill">
         <span class="s-dot"></span>
@@ -661,6 +682,9 @@ html.is-mac #topbar {
     });
   })();
 </script>
+<script src="currency.js"></script>
+<script src="nav.js"></script>
+<script>document.addEventListener('DOMContentLoaded', () => renderNav('terminal'));</script>
 <script src="renderer.js"></script>
 </body>
 </html>

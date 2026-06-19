@@ -67,10 +67,36 @@ html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(-
   -webkit-app-region: drag;
 }
 #topbar::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
-.wordmark { font-family:var(--serif); font-size:26px; font-weight:300; letter-spacing:0.06em; color:var(--ink); }
+.wordmark {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html.light .wordmark {
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 .algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
 #topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region: no-drag; }
-.nav-link:hover { color: var(--ink) !important; }
+.nav-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink3);
+  padding: 4px 0 2px;
+  transition: color 0.25s, border-color 0.25s;
+  border-bottom: 2px solid transparent;
+}
+.nav-link:hover { color: var(--ink) !important; border-bottom-color: rgba(255,255,255,0.15); }
+.nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); font-weight: 700; }
 
 /* live badge */
 #live-badge { display:flex; align-items:center; gap:7px; padding:6px 14px; border-radius:30px; border:1px solid rgba(16,185,129,0.35); background:var(--green-glow); font-family:var(--mono); font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--green); }
@@ -226,13 +252,7 @@ html.is-mac #topbar {
   <header id="topbar">
     <span class="wordmark">Monét</span>
     <span class="algo-chip">AI Engine</span>
-    <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
-      <a href="index.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Terminal</a>
-      <a href="trade.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Trade</a>
-      <a href="crypto-prices.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Crypto Prices</a>
-      <a href="model.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Model</a>
-      <a href="settings.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Settings</a>
-    </div>
+    <div id="nav-links" style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;"></div>
     <div id="topbar-right">
       <div id="live-badge">
         <div class="l-dot"></div>
@@ -294,7 +314,45 @@ html.is-mac #topbar {
     </div>
   </div>
 
+  <!-- ── LLM ANALYSIS ──────────────────────────────────────────────────────── -->
+  <div class="panel" id="llm-panel" style="margin-top:24px; display:none;">
+    <h2 style="font-family:var(--serif);font-size:24px;font-weight:400;margin-bottom:16px;">
+      <span style="display:flex;align-items:center;gap:10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 2-2 4-4 6-2-2-4-4-4-6a4 4 0 0 1 4-4z"/><path d="M12 12v6"/><path d="M9 18h6"/></svg>
+        LLM Market Analysis
+      </span>
+    </h2>
+    <div id="llm-status" style="font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:12px;">
+      <span id="llm-status-text">Analyzing...</span>
+      <span id="llm-spinner" style="display:inline-block;width:10px;height:10px;border:2px solid var(--border);border-top-color:var(--violet);border-radius:50%;animation:spin 0.8s linear infinite;margin-left:6px;vertical-align:middle;"></span>
+    </div>
+    <div id="llm-result" style="display:none;">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+        <div id="llm-signal" style="padding:6px 16px;border-radius:20px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;"></div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:4px;">
+            <span>Confidence</span>
+            <span id="llm-confidence-pct">0%</span>
+          </div>
+          <div style="height:6px;background:var(--s2);border-radius:4px;overflow:hidden;">
+            <div id="llm-confidence-bar" style="height:100%;width:0%;border-radius:4px;transition:width 0.6s ease;"></div>
+          </div>
+        </div>
+      </div>
+      <p id="llm-summary" style="font-family:var(--mono);font-size:10px;color:var(--ink2);line-height:1.6;margin-bottom:12px;"></p>
+      <div id="llm-reasoning" style="font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.7;margin-bottom:12px;"></div>
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);margin-bottom:6px;">Key Risks</div>
+        <ul id="llm-risks" style="list-style:none;padding:0;font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.7;"></ul>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+<style>
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
 
 <script>
 const BASE = (window.APP_CONFIG && window.APP_CONFIG.backendUrl) || 'http://127.0.0.1:5678';
@@ -456,6 +514,53 @@ async function updateData() {
       drawNetwork(document.getElementById('big-nn-canvas'), data.nn_activations);
     }
     
+    // LLM Analysis
+    const llmPanel = document.getElementById('llm-panel');
+    if (data.rsi != null && data.ai_prediction != null) {
+      const analysis = LLMEngine.analyze({
+        symbol: data.symbol || 'BTC',
+        price: data.price || 0,
+        rsi: data.rsi || 50,
+        bbPosition: data.bb_position || 'within bands',
+        momentum: data.momentum_5tick || 0,
+        prediction: data.ai_prediction || 0,
+        accuracy: (data.ai_accuracy || 0) * 100,
+        portfolioUSD: data.usd || 0,
+        pnl: data.pnl_pct || 0,
+      });
+
+      document.getElementById('llm-spinner').style.display = 'none';
+      document.getElementById('llm-status-text').textContent = 'Analysis Ready';
+      document.getElementById('llm-result').style.display = '';
+      llmPanel.style.display = '';
+
+      const sigEl = document.getElementById('llm-signal');
+      sigEl.textContent = analysis.signal;
+      if (analysis.signal === 'BULLISH') {
+        sigEl.style.background = 'var(--green-glow)';
+        sigEl.style.color = 'var(--green)';
+        sigEl.style.border = '1px solid rgba(16,185,129,0.3)';
+      } else if (analysis.signal === 'BEARISH') {
+        sigEl.style.background = 'var(--rose-glow)';
+        sigEl.style.color = 'var(--rose)';
+        sigEl.style.border = '1px solid rgba(244,63,94,0.3)';
+      } else {
+        sigEl.style.background = 'rgba(156,163,175,0.1)';
+        sigEl.style.color = 'var(--ink3)';
+        sigEl.style.border = '1px solid var(--border)';
+      }
+
+      const pct = (analysis.confidence * 100).toFixed(0);
+      document.getElementById('llm-confidence-pct').textContent = pct + '%';
+      const bar = document.getElementById('llm-confidence-bar');
+      bar.style.width = pct + '%';
+      bar.style.background = analysis.signal === 'BULLISH' ? 'var(--green)' : analysis.signal === 'BEARISH' ? 'var(--rose)' : 'var(--ink3)';
+
+      document.getElementById('llm-summary').textContent = analysis.summary;
+      document.getElementById('llm-reasoning').innerHTML = analysis.reasoning.map(l => '<div>' + l + '</div>').join('');
+      document.getElementById('llm-risks').innerHTML = analysis.risks.map(r => '<li style="padding:2px 0;">\u2022 ' + r + '</li>').join('');
+    }
+
     const now = new Date();
     document.getElementById('last-update').textContent = 'Updated ' + now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
   } catch (err) {
@@ -477,6 +582,9 @@ window.addEventListener('resize', () => {
 
 document.addEventListener('DOMContentLoaded', startPolling);
 </script>
-
+<script src="currency.js"></script>
+<script src="nav.js"></script>
+<script src="llm-engine.js"></script>
+<script>document.addEventListener('DOMContentLoaded', () => renderNav('model'));</script>
 </body>
 </html>

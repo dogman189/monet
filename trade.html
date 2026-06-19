@@ -92,10 +92,36 @@ html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(-
   -webkit-app-region: drag;
 }
 #topbar::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
-.wordmark { font-family:var(--serif); font-size:26px; font-weight:300; letter-spacing:0.06em; color:var(--ink); }
+.wordmark {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html.light .wordmark {
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 .algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
 #topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region: no-drag; }
-.nav-link:hover { color: var(--ink) !important; }
+.nav-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink3);
+  padding: 4px 0 2px;
+  transition: color 0.25s, border-color 0.25s;
+  border-bottom: 2px solid transparent;
+}
+.nav-link:hover { color: var(--ink) !important; border-bottom-color: rgba(255,255,255,0.15); }
+.nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); font-weight: 700; }
 
 /* ── MAIN GRID ───────────────────────────────────────────────────────────── */
 .main-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:20px; margin-bottom:24px; }
@@ -210,13 +236,7 @@ html:not(.light) #theme-toggle .icon-sun { display:none; }
   <header id="topbar">
     <span class="wordmark">Monét</span>
     <span class="algo-chip">Manual Trade</span>
-    <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
-      <a href="index.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Terminal</a>
-      <a href="trade.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Trade</a>
-      <a href="crypto-prices.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Crypto Prices</a>
-      <a href="model.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Model</a>
-      <a href="settings.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Settings</a>
-    </div>
+    <div id="nav-links" style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;"></div>
     <div id="topbar-right">
       <button id="theme-toggle" title="Toggle theme">
         <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -421,7 +441,7 @@ function updatePrice() {
   const coin = allCoins.find(c => c.symbol.toUpperCase() === symbolUpper);
   if (coin && coin.quote && coin.quote.USD) {
     currentPrice = coin.quote.USD.price || 0;
-    document.getElementById('price-val').textContent = '$' + currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+    document.getElementById('price-val').textContent = formatCurrency(currentPrice, currentPrice < 1 ? 4 : 2);
   } else {
     currentPrice = 0;
     document.getElementById('price-val').textContent = '$--';
@@ -450,7 +470,7 @@ async function syncBalance() {
     document.getElementById('bal-coin-qty').textContent = coinHoldings.toFixed(6);
     
     const holdingsVal = coinHoldings * currentPrice;
-    document.getElementById('bal-coin-val').textContent = '$' + holdingsVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('bal-coin-val').textContent = formatCurrency(holdingsVal);
     
     updateAvailLabel();
   } catch (_) {}
@@ -458,7 +478,7 @@ async function syncBalance() {
 
 function updateAvailLabel() {
   if (selectedSide === 'BUY') {
-    document.getElementById('summary-avail').textContent = '$' + usdBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('summary-avail').textContent = formatCurrency(usdBalance);
   } else {
     document.getElementById('summary-avail').textContent = `${coinHoldings.toFixed(6)} ${selectedSymbol.toUpperCase()}`;
   }
@@ -634,5 +654,8 @@ function renderRecentTrades() {
   }, 10000);
 })();
 </script>
+<script src="currency.js"></script>
+<script src="nav.js"></script>
+<script>document.addEventListener('DOMContentLoaded', () => renderNav('trade'));</script>
 </body>
 </html>

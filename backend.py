@@ -737,6 +737,23 @@ def _interruptible_sleep():
 
 # ── API ROUTES ────────────────────────────────────────────────────────────────
 
+def _bb_position_str(price, upper, lower):
+    if price is None or upper is None or lower is None or upper == lower:
+        return "within bands"
+    if price >= upper:
+        return "near upper band"
+    if price <= lower:
+        return "near lower band"
+    mid = (upper + lower) / 2
+    if price > mid:
+        return "above midline"
+    return "below midline"
+
+def _get_feature(features, idx):
+    if features and isinstance(features, list) and len(features) > idx:
+        return round(features[idx], 6)
+    return 0.0
+
 @app.route("/api/status", methods=["GET"])
 def get_status():
     symbol = state["symbol"]
@@ -783,6 +800,9 @@ def get_status():
         "ai_weights":      state["ai_weights"],
         "ai_bias":         state["ai_bias"],
         "history":         list(state["history"]),
+        # Derived fields for frontend
+        "bb_position":      _bb_position_str(state.get("price"), state.get("upper"), state.get("lower")),
+        "momentum_5tick":   _get_feature(state.get("ai_last_features"), 3),
         # Neural network specific
         "nn_architecture":   state.get("nn_architecture", NN_ARCHITECTURE),
         "nn_layer_norms":    state.get("nn_layer_norms", []),

@@ -67,10 +67,36 @@ html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(-
   -webkit-app-region: drag;
 }
 #topbar::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
-.wordmark { font-family:var(--serif); font-size:26px; font-weight:300; letter-spacing:0.06em; color:var(--ink); }
+.wordmark {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html.light .wordmark {
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 .algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
 #topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region: no-drag; }
-.nav-link:hover { color: var(--ink) !important; }
+.nav-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink3);
+  padding: 4px 0 2px;
+  transition: color 0.25s, border-color 0.25s;
+  border-bottom: 2px solid transparent;
+}
+.nav-link:hover { color: var(--ink) !important; border-bottom-color: rgba(255,255,255,0.15); }
+.nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); font-weight: 700; }
 
 /* live badge */
 #live-badge { display:flex; align-items:center; gap:7px; padding:6px 14px; border-radius:30px; border:1px solid rgba(16,185,129,0.35); background:var(--green-glow); font-family:var(--mono); font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--green); }
@@ -296,13 +322,7 @@ html.is-mac #topbar {
   <header id="topbar">
     <span class="wordmark">Monét</span>
     <span class="algo-chip">Crypto Prices</span>
-    <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
-      <a href="index.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Terminal</a>
-      <a href="trade.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Trade</a>
-      <a href="crypto-prices.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Crypto Prices</a>
-      <a href="model.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Model</a>
-      <a href="settings.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Settings</a>
-    </div>
+    <div id="nav-links" style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;"></div>
     <div id="topbar-right">
       <div id="live-badge">
         <div class="l-dot"></div>
@@ -513,6 +533,7 @@ let globalData   = {};
 let priceAlerts  = JSON.parse(localStorage.getItem('monet_price_alerts') || '[]');
 let currentModalCoin = '';
 let holdingsSymbols = [];
+let activeBotSymbol = '';
 
 // Request notification permissions
 if (Notification.permission === 'default') {
@@ -638,8 +659,10 @@ async function syncHoldings() {
     const d = await (await fetch('http://127.0.0.1:5678/api/status')).json();
     const holdingsAll = d.holdings_all || {};
     holdingsSymbols = Object.keys(holdingsAll).filter(k => holdingsAll[k] > 0).map(k => k.toLowerCase());
+    activeBotSymbol = (d.symbol || '').toLowerCase();
   } catch (e) {
     holdingsSymbols = [];
+    activeBotSymbol = '';
   }
 }
 
@@ -971,17 +994,24 @@ document.getElementById('alert-add-btn').onclick = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 function formatPrice(p) {
   if (p === null || p === undefined) return '–';
-  if (p >= 1000)  return '$' + p.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  if (p >= 1)     return '$' + p.toFixed(4);
-  if (p >= 0.01)  return '$' + p.toFixed(6);
-  return '$' + p.toFixed(8);
+  const cur = getCurrency();
+  const conv = convert(p);
+  const sym = cur.symbol;
+  if (cur.code === 'JPY') return sym + Math.round(conv).toLocaleString();
+  if (conv >= 1000)  return sym + conv.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  if (conv >= 1)     return sym + conv.toFixed(4);
+  if (conv >= 0.01)  return sym + conv.toFixed(6);
+  return sym + conv.toFixed(8);
 }
 function formatLarge(n) {
   if (!n) return '–';
-  if (n >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
-  if (n >= 1e9)  return '$' + (n/1e9).toFixed(2)  + 'B';
-  if (n >= 1e6)  return '$' + (n/1e6).toFixed(2)  + 'M';
-  return '$' + n.toLocaleString();
+  const cur = getCurrency();
+  const conv = convert(n);
+  const sym = cur.symbol;
+  if (conv >= 1e12) return sym + (conv/1e12).toFixed(2) + 'T';
+  if (conv >= 1e9)  return sym + (conv/1e9).toFixed(2)  + 'B';
+  if (conv >= 1e6)  return sym + (conv/1e6).toFixed(2)  + 'M';
+  return sym + conv.toLocaleString();
 }
 function formatSupply(n, sym) {
   if (!n) return '–';
@@ -1114,6 +1144,7 @@ function renderTable() {
     const ch7  = c.price_change_percentage_7d_in_currency;
     const spark = buildSparkline(c.sparkline_in_7d?.price, (ch7 || 0) >= 0);
 
+    const isActive = activeBotSymbol && c.symbol.toLowerCase() === activeBotSymbol;
     return `<tr data-id="${c.id}" onclick="openModal('${c.id}')">
       <td class="td-rank">${c.market_cap_rank || '–'}</td>
       <td>
@@ -1125,7 +1156,7 @@ function renderTable() {
           </div>
           <div>
             <div class="coin-name">${c.name}</div>
-            <div class="coin-sym">${c.symbol.toUpperCase()}</div>
+            <div class="coin-sym">${c.symbol.toUpperCase()}${isActive ? ' <span style="font-size:7px;background:var(--cyan-glow);color:var(--cyan);border:1px solid rgba(6,182,212,0.3);border-radius:10px;padding:1px 6px;margin-left:4px;letter-spacing:1px;font-weight:600;">ENGINE</span>' : ''}</div>
           </div>
         </div>
       </td>
@@ -1263,5 +1294,8 @@ document.querySelectorAll('thead th[data-col]').forEach(th => {
   }, 30_000);
 })();
 </script>
+<script src="currency.js"></script>
+<script src="nav.js"></script>
+<script>document.addEventListener('DOMContentLoaded', () => renderNav('prices'));</script>
 </body>
 </html>

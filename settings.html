@@ -119,10 +119,36 @@ html,body { width:100%; min-height:100%; background:var(--bg); font-family:var(-
   -webkit-app-region: drag;
 }
 #topbar::after { content:''; position:absolute;top:0;left:12px;right:12px;height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
-.wordmark { font-family:var(--serif); font-size:26px; font-weight:300; letter-spacing:0.06em; color:var(--ink); }
+.wordmark {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html.light .wordmark {
+  background: linear-gradient(135deg, var(--ink) 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 .algo-chip { font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(6,182,212,0.3); background:var(--cyan-glow); padding:3px 10px; border-radius:20px; }
 #topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; -webkit-app-region: no-drag; }
-.nav-link:hover { color: var(--ink) !important; }
+.nav-link {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink3);
+  padding: 4px 0 2px;
+  transition: color 0.25s, border-color 0.25s;
+  border-bottom: 2px solid transparent;
+}
+.nav-link:hover { color: var(--ink) !important; border-bottom-color: rgba(255,255,255,0.15); }
+.nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); font-weight: 700; }
 
 .panel { 
   background:var(--s1); 
@@ -273,13 +299,7 @@ html.is-mac #topbar {
   <header id="topbar">
     <span class="wordmark">Monét</span>
     <span class="algo-chip">algo · settings</span>
-    <div style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;">
-      <a href="index.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Terminal</a>
-      <a href="trade.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Trade</a>
-      <a href="crypto-prices.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Crypto Prices</a>
-      <a href="model.html" class="nav-link" style="color: var(--ink3); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; transition: var(--transition);">Model</a>
-      <a href="settings.html" class="nav-link active" style="color: var(--cyan); text-decoration: none; font-size: 11px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid var(--cyan); padding-bottom: 2px; font-weight: bold;">Settings</a>
-    </div>
+    <div id="nav-links" style="margin-left: 20px; display: flex; gap: 15px; -webkit-app-region: no-drag;"></div>
     <div id="topbar-right">
       <button id="theme-toggle" title="Toggle light / dark mode" aria-label="Toggle theme">
         <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -365,6 +385,43 @@ html.is-mac #topbar {
           <input type="number" class="field-input" id="cfg-rsi-overbought" min="50" max="90" placeholder="65"/>
         </div>
 
+        <div class="section-title" style="margin-top: 14px;">Currency</div>
+        <div class="field">
+          <label class="field-lbl">Display Currency</label>
+          <select class="field-input" id="cfg-currency">
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (&euro;)</option>
+            <option value="GBP">GBP (&pound;)</option>
+            <option value="JPY">JPY (&yen;)</option>
+            <option value="CAD">CAD (CA$)</option>
+            <option value="AUD">AUD (A$)</option>
+          </select>
+          <span class="field-hint">Prices shown in this currency across all pages.</span>
+        </div>
+
+        <div class="section-title" style="margin-top: 14px;">Customize Navigation</div>
+        <div class="field" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;color:var(--ink3);cursor:pointer;">
+            <input type="checkbox" id="nav-terminal" checked onchange="toggleTab('terminal')"/> Terminal
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;color:var(--ink3);cursor:pointer;">
+            <input type="checkbox" id="nav-trade" checked onchange="toggleTab('trade')"/> Trade
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;color:var(--ink3);cursor:pointer;">
+            <input type="checkbox" id="nav-prices" checked onchange="toggleTab('prices')"/> Crypto Prices
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;color:var(--ink3);cursor:pointer;">
+            <input type="checkbox" id="nav-model" checked onchange="toggleTab('model')"/> Model
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;color:var(--ink3);cursor:pointer;">
+            <input type="checkbox" id="nav-report" checked onchange="toggleTab('report')"/> Report
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;color:var(--ink3);cursor:pointer;">
+            <input type="checkbox" id="nav-settings" checked disabled style="opacity:0.5"/> Settings
+          </label>
+        </div>
+        <span class="field-hint">Show/hide tabs in the navigation bar.</span>
+
         <div class="section-title" style="margin-top: 14px;">Neural Network Settings</div>
         <div class="field">
           <label class="field-lbl">AI Learning Rate (alpha)</label>
@@ -398,7 +455,23 @@ html.is-mac #topbar {
 
 <div id="toast">Settings Saved!</div>
 
+<script src="currency.js"></script>
+<script src="nav.js"></script>
 <script>
+  function toggleTab(id) {
+    const cb = document.getElementById('nav-' + id);
+    setTabVisibility(id, cb.checked);
+    renderNav('settings');
+  }
+
+  function syncNavCheckboxes() {
+    const vis = getTabVisibility();
+    NAV_TABS.forEach(t => {
+      const cb = document.getElementById('nav-' + t.id);
+      if (cb) cb.checked = vis[t.id] !== false;
+    });
+  }
+
   // ─── THEME TOGGLE ──────────────────────────────────────────────────────────
   (function() {
     const html = document.documentElement;
@@ -490,7 +563,16 @@ html.is-mac #topbar {
     setTimeout(() => toast.classList.remove('show'), 2000);
   }
 
-  document.addEventListener('DOMContentLoaded', loadSettings);
+  document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    renderNav('settings');
+    syncNavCheckboxes();
+    const curSel = document.getElementById('cfg-currency');
+    curSel.value = getCurrency().code;
+    curSel.addEventListener('change', () => {
+      setCurrency(curSel.value);
+    });
+  });
 </script>
 </body>
 </html>

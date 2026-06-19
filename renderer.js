@@ -193,7 +193,8 @@ function render(d) {
   chartHistory = history || [];
 
   // Symbol labels
-  E.symLabel.textContent     = `${sym} / USD`;
+  const curCode = (typeof getCurrency === 'function') ? getCurrency().code : 'USD';
+  E.symLabel.textContent     = `${sym} / ${curCode}`;
   E.cryptoSym.textContent    = sym;
 
   // Price
@@ -871,9 +872,10 @@ E.btnStop.addEventListener('click', async () => {
 // ─── UTILITIES ───────────────────────────────────────────────────────────────
 
 function fmt$(n) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency', currency: 'USD', minimumFractionDigits: 2
-  }).format(n);
+  if (typeof formatCurrency === 'function') {
+    return formatCurrency(n);
+  }
+  return '$' + (n || 0).toFixed(2);
 }
 
 function flash(el, cls) {
