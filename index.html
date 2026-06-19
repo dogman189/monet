@@ -165,7 +165,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); font
 
 #app { position:relative; z-index:10; width:100vw; height:100vh; display:grid; grid-template-columns:270px 1fr 240px; grid-template-rows:68px 1fr 1fr 180px; gap:12px; padding:12px; }
 
-#topbar { grid-column:1/-1; grid-row:1; display:flex; align-items:center; gap:12px; padding:0 8px; -webkit-app-region:drag; }
+#topbar { grid-column:1/-1; grid-row:1; display:flex; align-items:center; gap:12px; padding:0 8px; position:relative; -webkit-app-region:drag; }
 .wordmark {
   font-family: var(--serif);
   font-size: 26px;
@@ -368,16 +368,8 @@ select.field-input { -webkit-appearance:none; appearance:none; background-image:
 @keyframes bspin{to{transform:rotate(360deg)}}
 .boot-sub { font-family:var(--mono); font-size:9.5px; letter-spacing:3px; color:var(--ink3); text-transform: uppercase; }
 
-/* macOS Window Controls Offset */
-html.is-mac #topbar {
-  padding-left: 80px !important;
-}
 </style>
-<script>
-  if ((window.APP_CONFIG && window.APP_CONFIG.platform === 'darwin') || navigator.userAgent.indexOf('Mac') !== -1) {
-    document.documentElement.classList.add('is-mac');
-  }
-</script>
+<link rel="stylesheet" href="macos.css"/>
 </head>
 <body>
 

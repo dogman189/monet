@@ -1,0 +1,20 @@
+/* macOS traffic-light button offsets — applied when preload.js sets .is-mac on <html> */
+html.is-mac #topbar {
+  padding-left: 80px;
+}
+html.is-mac #app {
+  padding-top: 12px;
+}
+
+/* Safety: prevent drag region from intercepting traffic-light clicks */
+html.is-mac #topbar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 70px;
+  height: 100%;
+  -webkit-app-region: no-drag;
+  z-index: 1;
+  pointer-events: auto;
+}

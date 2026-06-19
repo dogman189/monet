@@ -190,20 +190,13 @@ html.light .wordmark {
   .metric-row { grid-template-columns:repeat(3,1fr); }
 }
 
-html.is-mac #app { padding-top: 12px !important; }
-html.is-mac #topbar { padding-left: 80px !important; }
-
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:6px; }
 ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.15); }
 
 </style>
-<script>
-  if ((window.APP_CONFIG && window.APP_CONFIG.platform === 'darwin') || navigator.userAgent.indexOf('Mac') !== -1) {
-    document.documentElement.classList.add('is-mac');
-  }
-</script>
+<link rel="stylesheet" href="macos.css"/>
 </head>
 <body>
 

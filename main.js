@@ -158,7 +158,8 @@ function createWindow() {
     height: 780,
     minWidth: 960,
     minHeight: 640,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
+    ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 12, y: 14 } } : {}),
     backgroundColor: '#0B0F19',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

@@ -224,19 +224,8 @@ h3 {
   font-weight: bold;
 }
 
-/* macOS Window Controls Offset */
-html.is-mac #app {
-  padding-top: 12px !important;
-}
-html.is-mac #topbar {
-  padding-left: 80px !important;
-}
 </style>
-<script>
-  if ((window.APP_CONFIG && window.APP_CONFIG.platform === 'darwin') || navigator.userAgent.indexOf('Mac') !== -1) {
-    document.documentElement.classList.add('is-mac');
-  }
-</script>
+<link rel="stylesheet" href="macos.css"/>
 </head>
 <body>
 
